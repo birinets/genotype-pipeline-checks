@@ -26,7 +26,7 @@ This release corrects wording and cases that were wrong or misleading in 0.1.0.
 
 - `reference_is_carrier` is now `reference_matches`; `compare --carriers` is now `compare --reported`.
 - Removed the "Planned, not promised" section. No scorer or build-conversion check is planned here; `rtg vcfeval` and `hap.py` already compare call sets.
-- The repository's home is now `indaga-ai/genotype-pipeline-checks`.
+- The README now points to the copy at `indaga-ai/genotype-pipeline-checks`. The source repository stays at `birinets/genotype-pipeline-checks`, and the two are kept identical.
 
 ## 0.1.0 (2026-10-11)
 

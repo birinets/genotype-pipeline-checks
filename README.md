@@ -106,7 +106,7 @@ The maintainer, Ruslan Plakhuta, runs that product ([Indaga](https://indaga.ai))
 
 ## Contributing
 
-Issues and pull requests are welcome. The most useful contribution is a new case: say in one line why it matters, and cite a public source or show how it was derived. A disagreement with the reference rule or with a case's explanation is also useful. Version 0.2.0 exists because three explanations in 0.1.0 were wrong and its reference rule had a hole; see `CHANGELOG.md`.
+Issues and pull requests are welcome at the source repository, https://github.com/birinets/genotype-pipeline-checks. The copy at https://github.com/indaga-ai/genotype-pipeline-checks is kept identical. The most useful contribution is a new case: say in one line why it matters, and cite a public source or show how it was derived. A disagreement with the reference rule or with a case's explanation is also useful. Version 0.2.0 exists because three explanations in 0.1.0 were wrong and its reference rule had a hole; see `CHANGELOG.md`.
 
 ## Licence
 

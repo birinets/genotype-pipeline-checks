@@ -9,19 +9,32 @@ import importlib
 import sys
 
 from . import __version__
-from .matchers import naive_position_only, naive_string_equal, reference_is_carrier
+from .matchers import KNOWN_BAD, reference_matches
 from .runner import failed_ids, format_report, load_cases, run_cases
-from .synth import compare_carriers, read_carriers, write_all
+from .synth import compare_reported, read_reported, write_all
 
-# What the two known-bad matchers must get wrong. If these sets change, the cases changed.
+# What each known-bad matcher must get wrong. If these sets change, the cases changed.
 EXPECTED_NAIVE_FAILURES = {
     "position-only": {
-        "indel-vs-array-snp",
+        "delins-vs-array-snp",
+        "deletion-anchor-equals-alt",
         "array-genotype-outside-record-alleles",
         "imputed-indel-different-deletion",
+        "imputed-row-reference-disagrees",
         "imputed-indel-different-anchor",
     },
+    "any-non-reference": {
+        "delins-vs-array-snp",
+        "deletion-anchor-equals-alt",
+        "array-alt-mismatch",
+        "imputed-alt-mismatch",
+        "array-genotype-outside-record-alleles",
+        "imputed-indel-different-deletion",
+        "imputed-row-reference-disagrees",
+        "imputed-reference-disagrees-in-trimmed-base",
+    },
     "string-equal": {"imputed-indel-different-anchor"},
+    "trim-only": {"imputed-reference-disagrees-in-trimmed-base"},
 }
 
 
@@ -33,12 +46,12 @@ def _cmd_list(_args) -> int:
 
 def _cmd_selftest(_args) -> int:
     ok = True
-    ref_results = run_cases(reference_is_carrier)
+    ref_results = run_cases(reference_matches)
     print("Reference rule:")
     print(format_report(ref_results))
     ok &= not failed_ids(ref_results)
 
-    for name, fn in (("position-only", naive_position_only), ("string-equal", naive_string_equal)):
+    for name, fn in KNOWN_BAD.items():
         got = failed_ids(run_cases(fn))
         want = EXPECTED_NAIVE_FAILURES[name]
         same = got == want
@@ -74,7 +87,7 @@ def _cmd_synth(args) -> int:
 
 
 def _cmd_compare(args) -> int:
-    results = compare_carriers(read_carriers(args.carriers))
+    results = compare_reported(read_reported(args.reported))
     print(format_report(results))
     return 1 if failed_ids(results) else 0
 
@@ -97,8 +110,8 @@ def main(argv=None) -> int:
     p.add_argument("outdir")
     p.set_defaults(fn=_cmd_synth)
 
-    p = sub.add_parser("compare", help="score the carriers your pipeline reported on the synthetic files")
-    p.add_argument("--carriers", required=True,
+    p = sub.add_parser("compare", help="score the records your pipeline reported on the synthetic files")
+    p.add_argument("--reported", required=True,
                    help="file with one case id per line, or tab-separated chrom, pos, ref, alt")
     p.set_defaults(fn=_cmd_compare)
 

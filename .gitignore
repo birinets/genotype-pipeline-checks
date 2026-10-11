@@ -7,4 +7,4 @@ dist/
 .DS_Store
 # Anything a pipeline writes while being tested
 out/
-carriers.tsv
+reported.tsv

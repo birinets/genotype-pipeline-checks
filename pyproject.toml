@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "genotype-pipeline-checks"
-version = "0.1.0"
+version = "0.2.0"
 description = "Small, engine-independent checks for allele identity in genotype pipelines, built from synthetic cases."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -21,7 +21,7 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/birinets/genotype-pipeline-checks"
+Homepage = "https://github.com/indaga-ai/genotype-pipeline-checks"
 
 [project.scripts]
 genotype-checks = "genotype_checks.cli:main"

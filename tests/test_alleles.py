@@ -26,8 +26,16 @@ class SameAlleleTest(unittest.TestCase):
     def test_different_anchor_is_the_same_variant(self):
         self.assertTrue(same_allele("CA", "C", "CAA", "CA"))
 
-    def test_different_deleted_base_is_not(self):
+    def test_reference_disagreement_is_not_a_match(self):
         self.assertFalse(same_allele("CA", "C", "CT", "C"))
+
+    def test_different_deletion_length_is_not(self):
+        self.assertFalse(same_allele("CA", "C", "CAA", "C"))
+
+    def test_documented_limit_trimming_cannot_see_a_disagreement_in_a_shared_base(self):
+        # CAA>CA and CAT>CT disagree about the third reference base, but both trim to "delete A".
+        # The matcher checks the reference bases separately; this helper alone says "same".
+        self.assertTrue(same_allele("CAA", "CA", "CAT", "CT"))
 
     def test_snvs_compare_exactly(self):
         self.assertTrue(same_allele("A", "T", "A", "T"))

@@ -23,13 +23,13 @@ def load_cases() -> list[dict[str, Any]]:
 @dataclass(frozen=True)
 class Result:
     case_id: str
-    expect_carrier: bool
-    got_carrier: bool
+    expect_match: bool
+    got_match: bool
     why: str
 
     @property
     def passed(self) -> bool:
-        return self.expect_carrier == self.got_carrier
+        return self.expect_match == self.got_match
 
 
 def run_cases(matcher: Matcher, cases: list[dict[str, Any]] | None = None) -> list[Result]:
@@ -37,7 +37,7 @@ def run_cases(matcher: Matcher, cases: list[dict[str, Any]] | None = None) -> li
     results = []
     for case in cases if cases is not None else load_cases():
         got = bool(matcher(copy.deepcopy(case["record"]), copy.deepcopy(case["genotype"])))
-        results.append(Result(case["id"], case["expect"] == "carrier", got, case["why"]))
+        results.append(Result(case["id"], case["expect"] == "match", got, case["why"]))
     return results
 
 
@@ -50,8 +50,8 @@ def format_report(results: list[Result]) -> str:
     lines = []
     for r in results:
         mark = "PASS" if r.passed else "FAIL"
-        want = "carrier" if r.expect_carrier else "not a carrier"
-        got = "carrier" if r.got_carrier else "not a carrier"
+        want = "match" if r.expect_match else "no match"
+        got = "match" if r.got_match else "no match"
         detail = "" if r.passed else f"  (expected {want}, got {got})"
         lines.append(f"  [{mark}] {r.case_id.ljust(width)}{detail}".rstrip())
     passed = sum(r.passed for r in results)

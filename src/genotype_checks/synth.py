@@ -7,7 +7,7 @@ Output, in one directory:
     array.txt     array-style raw genotype file (tab-separated: rsid, chromosome, position, genotype)
     imputed.vcf   one-sample VCF for the cases whose data rows carry their own ref and alt
     records.tsv   the variant records (case id, chrom, pos, ref, alt), as a variant database would list them
-    expected.tsv  the answer for each case id: carrier or not_carrier
+    expected.tsv  the answer for each case id: match or no_match
 
 Everything is synthetic. Nothing here describes a real person or a real variant.
 """
@@ -104,24 +104,24 @@ def write_all(outdir: str | Path, cases: list[dict[str, Any]] | None = None) -> 
     return paths
 
 
-def compare_carriers(called: set, cases: list[dict[str, Any]] | None = None):
-    """Score a list of carrier calls from a pipeline run on the synthetic files.
+def compare_reported(reported: set, cases: list[dict[str, Any]] | None = None) -> list[Result]:
+    """Score the records a pipeline reported after running on the synthetic files.
 
-    ``called`` holds case ids and/or ``(chrom, pos, ref, alt)`` tuples for every record the
-    pipeline reported the subject as carrying. Returns a list of ``runner.Result``.
+    ``reported`` holds case ids and/or ``(chrom, pos, ref, alt)`` tuples for every record the
+    pipeline reported for the subject. A record that is absent counts as not reported.
     """
     results = []
     for case in cases if cases is not None else load_cases():
         r = case["record"]
         key = (str(r["chrom"]), int(r["pos"]), r["ref"].upper(), r["alt"].upper())
-        got = case["id"] in called or key in called
-        results.append(Result(case["id"], case["expect"] == "carrier", got, case["why"]))
+        got = case["id"] in reported or key in reported
+        results.append(Result(case["id"], case["expect"] == "match", got, case["why"]))
     return results
 
 
-def read_carriers(path: str | Path) -> set:
-    """Read a carrier list: one case id per line, or tab-separated chrom, pos, ref, alt."""
-    called: set = set()
+def read_reported(path: str | Path) -> set:
+    """Read a list of reported records: one case id per line, or tab-separated chrom, pos, ref, alt."""
+    reported: set = set()
     for raw in Path(path).read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
@@ -130,9 +130,9 @@ def read_carriers(path: str | Path) -> set:
         if parts[0] in ("case_id", "chrom"):  # header row
             continue
         if len(parts) >= 5 and parts[2].isdigit():  # records.tsv style: case id first
-            called.add((parts[1].removeprefix("chr"), int(parts[2]), parts[3].upper(), parts[4].upper()))
+            reported.add((parts[1].removeprefix("chr"), int(parts[2]), parts[3].upper(), parts[4].upper()))
         elif len(parts) >= 4 and parts[1].isdigit():  # chrom, pos, ref, alt
-            called.add((parts[0].removeprefix("chr"), int(parts[1]), parts[2].upper(), parts[3].upper()))
+            reported.add((parts[0].removeprefix("chr"), int(parts[1]), parts[2].upper(), parts[3].upper()))
         else:
-            called.add(parts[0])
-    return called
+            reported.add(parts[0])
+    return reported

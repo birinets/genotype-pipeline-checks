@@ -4,12 +4,15 @@
 
 Two valid encodings of the same variant can differ letter for letter: a different anchor length,
 for example, writes one deletion as ``CA>C`` or as ``CAA>CA``. Comparing the raw strings misses
-the match. Trimming the shared suffix and then the shared prefix (the "minimal representation"
-of vt and Tan et al. 2015) makes the comparison independent of how the variant was written.
+the match. Trimming the shared suffix and then the shared prefix (the trimming half of the
+normalisation in Tan et al. 2015, without its left-alignment) makes the comparison independent
+of how the variant was written.
 
-This is trimming only. It does not left-align repeats against a reference genome, so two
-encodings of a deletion inside a repeat that sit at different positions still compare as
-different. A single-letter change (SNV) is returned unchanged, so this never loosens SNV matching.
+This is trimming only, and it trims down to an empty allele. It does not left-align repeats
+against a reference genome, so two encodings of a deletion inside a repeat that sit at different
+positions still compare as different. It also throws away the bases two encodings share, so it
+cannot see that they disagree about a reference base: the matcher checks that separately. A
+single-letter change (SNV) is returned unchanged, so this never loosens SNV matching.
 """
 
 from __future__ import annotations

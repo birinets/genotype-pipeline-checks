@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "genotype-pipeline-checks"
+version = "0.1.0"
+description = "Small, engine-independent checks for allele identity in genotype pipelines, built from synthetic cases."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Ruslan Plakhuta" }]
+keywords = ["genomics", "genotype", "variant", "testing", "allele"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/birinets/genotype-pipeline-checks"
+
+[project.scripts]
+genotype-checks = "genotype_checks.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+genotype_checks = ["cases.json"]

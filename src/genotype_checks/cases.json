@@ -1,0 +1,69 @@
+{
+  "version": "0.1.0",
+  "about": "Allele-identity cases. Each pairs a database record of a variant with what a subject's data holds at that position, and says whether the subject should be counted as a carrier. Coordinates, ids and letters are synthetic and do not describe any real variant or person.",
+  "cases": [
+    {
+      "id": "indel-vs-array-snp",
+      "expect": "not_carrier",
+      "record": {"chrom": "1", "pos": 1000, "ref": "AA", "alt": "C"},
+      "genotype": {"source": "array", "alleles": ["A", "C"]},
+      "why": "The record is an indel (AA>C). An array reports two letters, A and C, which also fit a plain SNP. A C in the genotype does not make the subject a carrier of the indel."
+    },
+    {
+      "id": "snv-reference-mismatch",
+      "expect": "not_carrier",
+      "record": {"chrom": "1", "pos": 2000, "ref": "G", "alt": "A"},
+      "genotype": {"source": "array", "alleles": ["G", "C"]},
+      "why": "The subject carries C. The record's alternate allele is A, so this is a different variant at the same position."
+    },
+    {
+      "id": "imputed-alt-mismatch",
+      "expect": "not_carrier",
+      "record": {"chrom": "1", "pos": 3000, "ref": "C", "alt": "T"},
+      "genotype": {"source": "imputed", "alleles": ["C", "A"], "row_ref": "C", "row_alt": "A"},
+      "why": "The data row's own alternate allele is A and the record's is T. Same position, different variant."
+    },
+    {
+      "id": "array-genotype-outside-record-alleles",
+      "expect": "not_carrier",
+      "record": {"chrom": "1", "pos": 4000, "ref": "A", "alt": "G"},
+      "genotype": {"source": "array", "alleles": ["G", "T"]},
+      "why": "T is neither the record's reference A nor its alternate G. The genotype is not drawn from the record's alleles, so it is not evidence for A>G."
+    },
+    {
+      "id": "imputed-indel-different-deletion",
+      "expect": "not_carrier",
+      "record": {"chrom": "1", "pos": 5000, "ref": "CA", "alt": "C"},
+      "genotype": {"source": "imputed", "alleles": ["CT", "C"], "row_ref": "CT", "row_alt": "C"},
+      "why": "Both are one-base deletions at the same position, but they delete different bases: A in the record, T in the data row."
+    },
+    {
+      "id": "array-snv-exact",
+      "expect": "carrier",
+      "record": {"chrom": "1", "pos": 6000, "ref": "A", "alt": "T"},
+      "genotype": {"source": "array", "alleles": ["A", "T"]},
+      "why": "An exact SNV match: one copy of the record's alternate allele, the other copy reference."
+    },
+    {
+      "id": "array-snv-homozygous-alt",
+      "expect": "carrier",
+      "record": {"chrom": "1", "pos": 7000, "ref": "A", "alt": "G"},
+      "genotype": {"source": "array", "alleles": ["G", "G"]},
+      "why": "Two copies of the record's alternate allele."
+    },
+    {
+      "id": "imputed-snv-exact",
+      "expect": "carrier",
+      "record": {"chrom": "1", "pos": 8000, "ref": "C", "alt": "G"},
+      "genotype": {"source": "imputed", "alleles": ["C", "G"], "row_ref": "C", "row_alt": "G"},
+      "why": "The data row's reference and alternate alleles equal the record's, and the genotype carries the alternate."
+    },
+    {
+      "id": "imputed-indel-different-anchor",
+      "expect": "carrier",
+      "record": {"chrom": "1", "pos": 9000, "ref": "CA", "alt": "C"},
+      "genotype": {"source": "imputed", "alleles": ["CAA", "CA"], "row_ref": "CAA", "row_alt": "CA"},
+      "why": "The same one-base deletion written with a longer anchor (CAA>CA instead of CA>C). Comparing the letters misses it; comparing minimal representations matches it."
+    }
+  ]
+}

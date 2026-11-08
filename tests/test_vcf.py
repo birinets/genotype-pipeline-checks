@@ -1,0 +1,139 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 Ruslan Plakhuta
+import gzip
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+from genotype_checks.matchers import MATCH, NO_MATCH, REF_ALT_SWAPPED
+from genotype_checks.runner import load_cases
+from genotype_checks.synth import write_all
+from genotype_checks.vcf import NO_GENOTYPE, TSV_COLUMNS, check_vcf
+
+ROOT = Path(__file__).resolve().parent.parent
+ENV = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+
+
+def run_cli(*args):
+    return subprocess.run([sys.executable, "-m", "genotype_checks", *args],
+                          capture_output=True, text=True, env=ENV, cwd=ROOT)
+
+
+def vcf_text(header_columns, rows):
+    lines = ["##fileformat=VCFv4.2", "#" + "\t".join(header_columns)]
+    return "\n".join(lines + ["\t".join(r) for r in rows]) + "\n"
+
+
+SITE_COLUMNS = ["CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO"]
+
+
+class SyntheticFilesTest(unittest.TestCase):
+    def test_the_synthetic_files_give_every_case_its_outcome(self):
+        """Records for every case against the imputed rows, through the command line.
+
+        Cases with a data row get their own outcome; array cases have no row in the VCF, so
+        no_genotype. The data is read plain and as two concatenated gzip members, which is how
+        BGZF files are built.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            write_all(out)
+            raw = (out / "imputed.vcf").read_bytes()
+            middle = len(raw) // 2
+            (out / "imputed.vcf.gz").write_bytes(gzip.compress(raw[:middle]) + gzip.compress(raw[middle:]))
+            expected = {c["id"]: c["expect"] if c["genotype"]["source"] == "imputed" else NO_GENOTYPE
+                        for c in load_cases()}
+            for data in ("imputed.vcf", "imputed.vcf.gz"):
+                with self.subTest(data=data):
+                    result = run_cli("vcf", "--records", str(out / "records.vcf"), "--data", str(out / data))
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    header, *rows = [line.split("\t") for line in result.stdout.splitlines()]
+                    self.assertEqual(header, list(TSV_COLUMNS))
+                    self.assertTrue(all(len(row) == len(TSV_COLUMNS) for row in rows))
+                    self.assertEqual({row[2]: row[5] for row in rows}, expected)
+
+
+class DataRowsTest(unittest.TestCase):
+    """Row shapes the case file cannot express. The records say "chr1" and the data says "1"."""
+
+    RECORDS = [
+        ("100", "multi-allelic-holds-alt", "A", "T"),
+        ("200", "multi-allelic-gt-index", "A", "G"),
+        ("300", "no-data-row", "A", "G"),
+        ("400", "missing-call", "A", "G"),
+        ("500", "half-call", "A", "G"),
+        ("600", "one-allele-call", "A", "G"),
+        ("700", "two-alt-record", "A", "G,C"),
+        ("800", "symbolic-record", "A", "<DEL>"),
+        ("900", "split-rows", "A", "T"),
+        ("1000", "flipped-and-swapped", "A", "G"),
+        ("1100", "row-without-alt", "A", "G"),
+    ]
+    DATA = [
+        ("100", "A", "G,T", "GT", "1/2"),
+        ("200", "A", "T,G", "GT", "0/1"),
+        ("400", "A", "G", "GT", "./."),
+        ("500", "A", "G", "GT", "./1"),
+        ("600", "A", "G", "GT", "1"),
+        ("700", "A", "G", "GT:DP", "0/1:12"),
+        ("800", "A", "G", "GT", "0/1"),
+        ("900", "A", "T", "GT", "0/1"),  # the matching row comes first, so keeping only the last row fails
+        ("900", "A", "G", "GT", "1/0"),
+        ("1000", "C", "T", "GT", "0/1"),
+        ("1100", "A", ".", "GT", "0/0"),
+    ]
+    EXPECTED = {  # (id, alt): (outcome, genotype)
+        ("multi-allelic-holds-alt", "T"): (MATCH, "G/T"),
+        ("multi-allelic-gt-index", "G"): (NO_MATCH, "A/T"),  # GT 1 is T here, not the record's G
+        ("no-data-row", "G"): (NO_GENOTYPE, "."),
+        ("missing-call", "G"): (NO_GENOTYPE, "."),
+        ("half-call", "G"): (NO_GENOTYPE, "."),
+        ("one-allele-call", "G"): (NO_GENOTYPE, "."),
+        ("two-alt-record", "G"): (MATCH, "A/G"),
+        ("two-alt-record", "C"): (NO_MATCH, "A/G"),
+        ("symbolic-record", "<DEL>"): (NO_MATCH, "."),
+        ("split-rows", "T"): (MATCH, "A/T"),
+        ("flipped-and-swapped", "G"): (REF_ALT_SWAPPED, "C/T"),
+        ("row-without-alt", "G"): (NO_MATCH, "A/A"),
+    }
+
+    def test_each_row_shape_gets_its_outcome_and_genotype(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            records, data = Path(tmp) / "records.vcf", Path(tmp) / "data.vcf"
+            records.write_text(vcf_text(SITE_COLUMNS, [["chr1", pos, vid, ref, alt, ".", ".", "."]
+                                                       for pos, vid, ref, alt in self.RECORDS]))
+            data.write_text(vcf_text(SITE_COLUMNS + ["FORMAT", "S1"],
+                                     [["1", pos, ".", ref, alt, ".", "PASS", ".", fmt, sample]
+                                      for pos, ref, alt, fmt, sample in self.DATA]))
+            name, checked = check_vcf(records, data)
+        self.assertEqual(name, "S1")
+        self.assertEqual({(c.id, c.alt): (c.outcome, c.genotype) for c in checked}, self.EXPECTED)
+        self.assertEqual(len(checked), len(self.EXPECTED))
+
+
+class SampleChoiceTest(unittest.TestCase):
+    def test_a_file_with_several_samples_needs_one_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            records, data = Path(tmp) / "records.vcf", Path(tmp) / "data.vcf"
+            records.write_text(vcf_text(SITE_COLUMNS, [["1", "100", "r1", "A", "G", ".", ".", "."]]))
+            data.write_text(vcf_text(SITE_COLUMNS + ["FORMAT", "S1", "S2"],
+                                     [["1", "100", ".", "A", "G", ".", "PASS", ".", "GT", "0/0", "1/1"]]))
+
+            refused = run_cli("vcf", "--records", str(records), "--data", str(data))
+            self.assertEqual(refused.returncode, 2)
+            self.assertIn("--sample", refused.stderr)
+
+            for sample, row in (("S1", [NO_MATCH, "A/A"]), ("S2", [MATCH, "G/G"])):
+                with self.subTest(sample=sample):
+                    out = Path(tmp) / f"{sample}.tsv"
+                    result = run_cli("vcf", "--records", str(records), "--data", str(data),
+                                     "--sample", sample, "--out", str(out))
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(out.read_text().splitlines()[1].split("\t")[5:7], row)
+
+
+if __name__ == "__main__":
+    unittest.main()

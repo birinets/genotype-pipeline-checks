@@ -7,7 +7,8 @@ Output, in one directory:
     array.txt     array-style raw genotype file (tab-separated: rsid, chromosome, position, genotype)
     imputed.vcf   one-sample VCF for the cases whose data rows carry their own ref and alt
     records.tsv   the variant records (case id, chrom, pos, ref, alt), as a variant database would list them
-    expected.tsv  the answer for each case id: match or no_match
+    records.vcf   the same records as a sites-only VCF, with the case id in the ID column (for ``vcf``)
+    expected.tsv  the outcome for each case id
 
 Everything is synthetic. Nothing here describes a real person or a real variant.
 """
@@ -80,13 +81,27 @@ def records_tsv(cases: list[dict[str, Any]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def records_vcf(cases: list[dict[str, Any]]) -> str:
+    rows = sorted(((str(c["record"]["chrom"]), int(c["record"]["pos"]), c) for c in cases),
+                  key=lambda t: (t[0], t[1]))
+    head = [
+        "##fileformat=VCFv4.2",
+        "##source=genotype-pipeline-checks (synthetic records, not real variants)",
+        *[f"##contig=<ID={c}>" for c in sorted({t[0] for t in rows})],
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO",
+    ]
+    body = [f"{chrom}\t{pos}\t{c['id']}\t{c['record']['ref']}\t{c['record']['alt']}\t.\t.\t."
+            for chrom, pos, c in rows]
+    return "\n".join(head + body) + "\n"
+
+
 def expected_tsv(cases: list[dict[str, Any]]) -> str:
     lines = ["case_id\texpect"] + [f"{c['id']}\t{c['expect']}" for c in cases]
     return "\n".join(lines) + "\n"
 
 
 def write_all(outdir: str | Path, cases: list[dict[str, Any]] | None = None) -> list[Path]:
-    """Write the four files into ``outdir`` (created if needed) and return their paths."""
+    """Write the five files into ``outdir`` (created if needed) and return their paths."""
     cases = cases if cases is not None else load_cases()
     out = Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
@@ -94,6 +109,7 @@ def write_all(outdir: str | Path, cases: list[dict[str, Any]] | None = None) -> 
         "array.txt": array_text(cases),
         "imputed.vcf": imputed_vcf(cases),
         "records.tsv": records_tsv(cases),
+        "records.vcf": records_vcf(cases),
         "expected.tsv": expected_tsv(cases),
     }
     paths = []

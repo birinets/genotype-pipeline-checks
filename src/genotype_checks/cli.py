@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2026 Ruslan Plakhuta
-"""Command line: list, selftest, check, synth, compare."""
+"""Command line: list, selftest, check, synth, compare, vcf."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from . import __version__
 from .matchers import KNOWN_BAD, reference_matches, reference_outcome
 from .runner import failed_ids, format_report, load_cases, run_cases
 from .synth import compare_reported, read_reported, write_all
+from .vcf import VcfError, check_vcf, summary, write_tsv
 
 # What each known-bad matcher must get wrong. If these sets change, the cases changed.
 EXPECTED_NAIVE_FAILURES = {
@@ -112,6 +113,21 @@ def _cmd_compare(args) -> int:
     return 1 if failed_ids(results) else 0
 
 
+def _cmd_vcf(args) -> int:
+    try:
+        sample, checked = check_vcf(args.records, args.data, args.sample)
+    except VcfError as exc:
+        print(f"genotype-checks vcf: {exc}", file=sys.stderr)
+        return 2
+    if args.out:
+        with open(args.out, "w", encoding="utf-8", newline="") as fh:
+            write_tsv(checked, fh)
+    else:
+        write_tsv(checked, sys.stdout)
+    print(summary(sample, checked), file=sys.stderr)
+    return 0
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="genotype-checks",
@@ -136,6 +152,14 @@ def main(argv=None) -> int:
     p.add_argument("--reported", required=True,
                    help="file with one case id per line, or tab-separated chrom, pos, ref, alt")
     p.set_defaults(fn=_cmd_compare)
+
+    p = sub.add_parser("vcf", help="check a records VCF against a data VCF: one outcome per record")
+    p.add_argument("--records", required=True,
+                   help="VCF of the variants a pipeline will score (plain or gzip/BGZF; samples ignored)")
+    p.add_argument("--data", required=True, help="VCF with the person's genotypes in GT (plain or gzip/BGZF)")
+    p.add_argument("--sample", help="sample column to read; required when the data VCF has several")
+    p.add_argument("--out", help="write the TSV here instead of to standard output")
+    p.set_defaults(fn=_cmd_vcf)
 
     args = parser.parse_args(argv)
     return args.fn(args)

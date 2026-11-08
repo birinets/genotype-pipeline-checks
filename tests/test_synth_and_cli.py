@@ -29,9 +29,9 @@ class SynthTest(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def test_four_files_are_written(self):
+    def test_five_files_are_written(self):
         self.assertEqual(sorted(p.name for p in self.out.iterdir()),
-                         ["array.txt", "expected.tsv", "imputed.vcf", "records.tsv"])
+                         ["array.txt", "expected.tsv", "imputed.vcf", "records.tsv", "records.vcf"])
 
     def test_vcf_rows_carry_each_imputed_case_as_written(self):
         lines = (self.out / "imputed.vcf").read_text().splitlines()
@@ -134,8 +134,11 @@ class CliTest(unittest.TestCase):
             self.assertIn(c["id"], result.stdout)
 
     def test_check_with_the_reference_rule_passes(self):
-        result = run_cli("check", "--adapter", "genotype_checks.matchers:reference_matches")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        # A yes/no adapter, and one that returns (outcome, reason) pairs and is scored exactly.
+        for adapter in ("reference_matches", "reference_outcome"):
+            with self.subTest(adapter=adapter):
+                result = run_cli("check", "--adapter", f"genotype_checks.matchers:{adapter}")
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_check_with_a_bad_rule_fails_with_exit_code_one(self):
         result = run_cli("check", "--adapter", "genotype_checks.matchers:naive_position_only")

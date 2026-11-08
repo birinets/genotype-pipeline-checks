@@ -1,0 +1,16 @@
+# Draft. Describes the WDL workflow for Dockstore's GitHub App. Nothing happens until the app is
+# installed on the repository. There is no "publish" key, which leaves a workflow's publish state
+# unchanged, and automatic DOIs are off because a DOI cannot be withdrawn.
+version: 1.2
+workflows:
+  - name: genotype-checks
+    subclass: WDL
+    primaryDescriptorPath: /workflows/genotype_checks.wdl
+    authors:
+      - name: Ruslan Plakhuta
+    enableAutoDois: false
+    filters:
+      branches:
+        - main
+      tags:
+        - /^v\d+\.\d+\.\d+$/

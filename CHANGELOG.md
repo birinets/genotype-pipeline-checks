@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased (0.3.0)
+
+Strand flips, A/T and C/G sites, swapped reference and alternate, and a VCF check. Not released yet; the code says `0.3.0.dev0`.
+
+**Corrected**
+
+- A homozygous call at an A/T or C/G site was matched as written: `T/T` against `A>T` was a match, although on the other strand it is the opposite homozygote. It is now `ambiguous_strand`. The 0.2.0 README listed this as a limit. The old behaviour is kept as the known-bad rule `as-written`. No existing case changes its expectation.
+
+**Added**
+
+- Three outcomes besides `match` and `no_match`: `match_after_flip`, `ambiguous_strand` and `ref_alt_swapped`, each with a one-line reason. `reference_outcome(record, genotype)` returns them; `reference_matches` stays the yes/no form and is True only for `match`.
+- Eight cases: `array-strand-flip`, `imputed-strand-flip`, `array-palindromic-homozygous`, `array-palindromic-homozygous-reference`, `array-palindromic-heterozygous`, `imputed-ref-alt-swapped`, `imputed-palindromic-reference-disagrees` and `imputed-palindromic-row-agrees`. Unlike the first twelve, they were written for this kit.
+- Known-bad rules `as-written`, `auto-flip` and `allele-set`. Every case whose outcome is not `match` is failed by at least one known-bad rule.
+- `genotype-checks vcf`: checks a records VCF against a data VCF (plain or gzip/BGZF, multi-allelic rows included) and writes one TSV row per record with its outcome and reason. It adds the outcome `no_genotype` for positions without a usable two-allele call.
+- `synth` also writes `records.vcf`.
+- A data row may give `row_alt` as a list, for a row with several alternate alleles. The case file still uses single strings.
+- A draft WDL workflow (`workflows/genotype_checks.wdl`) and `.dockstore.yml`, neither run nor registered, and the design note `docs/v0.3-design.md`.
+
+**Changed**
+
+- `cases.json`: `expect` can be any of five outcomes. Readers that test `expect == "match"` keep working; readers that assume two values must be updated. Its `about` text no longer says array letters are taken as written on the forward strand.
+- `check --adapter` and `run_cases` accept True or False, scored as before (yes only for `match`), or an outcome name or an `(outcome, reason)` pair, scored on the exact outcome. `runner.Result` now holds the expected outcome and the answer (`expect`, `got`) instead of two booleans.
+- `string-equal` and `trim-only` now build on the new reference rule, so each still fails exactly its one case. `position-only` and `any-non-reference` are unchanged and also fail some of the new cases.
+- The README's strand statements now say what is tested and what is not. "Not covered" lost strand flips and swaps for single-letter records, A/T and C/G sites, and rows with several alternate alleles (the VCF check reads them), and gained the limits of the new rules.
+- The unit test that pinned "letters on the other strand are not resolved" is replaced by the case `array-strand-flip`.
+
 ## 0.2.0 (2026-10-11)
 
 This release corrects wording and cases that were wrong or misleading in 0.1.0.

@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "genotype-pipeline-checks"
-version = "0.2.0"
-description = "Small, engine-independent checks for allele identity in genotype pipelines, built from synthetic cases."
+version = "0.3.0.dev0"
+description = "Small, engine-independent checks for allele identity and strand in genotype pipelines, built from synthetic cases."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Ruslan Plakhuta" }]
-keywords = ["genomics", "genotype", "variant", "testing", "allele"]
+keywords = ["genomics", "genotype", "variant", "testing", "allele", "strand", "vcf"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",

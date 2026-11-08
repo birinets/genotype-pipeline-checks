@@ -9,7 +9,7 @@ import importlib
 import sys
 
 from . import __version__
-from .matchers import KNOWN_BAD, reference_matches
+from .matchers import KNOWN_BAD, reference_matches, reference_outcome
 from .runner import failed_ids, format_report, load_cases, run_cases
 from .synth import compare_reported, read_reported, write_all
 
@@ -22,6 +22,9 @@ EXPECTED_NAIVE_FAILURES = {
         "imputed-indel-different-deletion",
         "imputed-row-reference-disagrees",
         "imputed-indel-different-anchor",
+        "array-palindromic-homozygous",
+        "imputed-ref-alt-swapped",
+        "imputed-palindromic-reference-disagrees",
     },
     "any-non-reference": {
         "delins-vs-array-snp",
@@ -32,9 +35,22 @@ EXPECTED_NAIVE_FAILURES = {
         "imputed-indel-different-deletion",
         "imputed-row-reference-disagrees",
         "imputed-reference-disagrees-in-trimmed-base",
+        "array-strand-flip",
+        "imputed-strand-flip",
+        "array-palindromic-homozygous",
+        "imputed-ref-alt-swapped",
+        "imputed-palindromic-reference-disagrees",
     },
     "string-equal": {"imputed-indel-different-anchor"},
     "trim-only": {"imputed-reference-disagrees-in-trimmed-base"},
+    "as-written": {"array-palindromic-homozygous"},
+    "auto-flip": {
+        "array-strand-flip",
+        "imputed-strand-flip",
+        "array-palindromic-homozygous",
+        "array-palindromic-homozygous-reference",
+    },
+    "allele-set": {"imputed-ref-alt-swapped", "imputed-palindromic-reference-disagrees"},
 }
 
 
@@ -46,10 +62,14 @@ def _cmd_list(_args) -> int:
 
 def _cmd_selftest(_args) -> int:
     ok = True
-    ref_results = run_cases(reference_matches)
-    print("Reference rule:")
+    ref_results = run_cases(reference_outcome)
+    print("Reference rule, outcomes:")
     print(format_report(ref_results))
     ok &= not failed_ids(ref_results)
+
+    yes_no = failed_ids(run_cases(reference_matches))
+    ok &= not yes_no
+    print(f"\nReference rule, yes/no form: {'ok' if not yes_no else 'FAILED ' + str(sorted(yes_no))}")
 
     for name, fn in KNOWN_BAD.items():
         got = failed_ids(run_cases(fn))
@@ -103,7 +123,9 @@ def main(argv=None) -> int:
     sub.add_parser("selftest", help="check the kit itself").set_defaults(fn=_cmd_selftest)
 
     p = sub.add_parser("check", help="run your matcher function over the cases")
-    p.add_argument("--adapter", required=True, help="package.module:function taking (record, genotype)")
+    p.add_argument("--adapter", required=True,
+                   help="package.module:function taking (record, genotype) and returning True/False "
+                        "or an outcome name")
     p.set_defaults(fn=_cmd_check)
 
     p = sub.add_parser("synth", help="write the cases as made-up subject files")

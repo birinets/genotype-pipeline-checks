@@ -4,7 +4,7 @@ import copy
 import unittest
 
 from genotype_checks.cli import EXPECTED_NAIVE_FAILURES
-from genotype_checks.matchers import KNOWN_BAD, reference_matches
+from genotype_checks.matchers import KNOWN_BAD, MATCH, NO_MATCH, OUTCOMES, reference_matches, reference_outcome
 from genotype_checks.runner import failed_ids, load_cases, run_cases
 
 
@@ -20,7 +20,7 @@ class CaseFileTest(unittest.TestCase):
 
     def test_expectations_are_known_values(self):
         for c in self.cases:
-            self.assertIn(c["expect"], ("match", "no_match"), c["id"])
+            self.assertIn(c["expect"], OUTCOMES, c["id"])
 
     def test_positions_are_distinct(self):
         keys = [(c["record"]["chrom"], c["record"]["pos"]) for c in self.cases]
@@ -45,13 +45,26 @@ class CaseFileTest(unittest.TestCase):
         for c in self.cases:
             self.assertGreater(len(c["why"]), 20, c["id"])
 
-    def test_there_are_both_kinds_of_case(self):
-        self.assertEqual({c["expect"] for c in self.cases}, {"match", "no_match"})
+    def test_every_outcome_has_a_case(self):
+        self.assertEqual({c["expect"] for c in self.cases}, set(OUTCOMES))
 
 
 class MatcherTest(unittest.TestCase):
     def test_reference_rule_passes_every_case(self):
-        self.assertEqual(failed_ids(run_cases(reference_matches)), set())
+        # reference_outcome is scored on the exact outcome; reference_matches is its yes/no form.
+        for rule in (reference_outcome, reference_matches):
+            with self.subTest(rule=rule.__name__):
+                self.assertEqual(failed_ids(run_cases(rule)), set())
+
+    def test_outcome_names_are_scored_exactly(self):
+        # A matcher that answers with names but knows only match and no_match is safe, yet it does
+        # not give the cases' outcomes, so it fails exactly the cases with the other three outcomes.
+        def two_names(record, genotype):
+            return MATCH if reference_matches(record, genotype) else NO_MATCH
+
+        others = {c["id"] for c in load_cases() if c["expect"] not in (MATCH, NO_MATCH)}
+        self.assertTrue(others)
+        self.assertEqual(failed_ids(run_cases(two_names)), others)
 
     def test_each_known_bad_rule_fails_exactly_its_cases(self):
         self.assertEqual(set(KNOWN_BAD), set(EXPECTED_NAIVE_FAILURES))
@@ -59,10 +72,10 @@ class MatcherTest(unittest.TestCase):
             with self.subTest(rule=name):
                 self.assertEqual(failed_ids(run_cases(rule)), EXPECTED_NAIVE_FAILURES[name])
 
-    def test_every_no_match_case_catches_at_least_one_known_bad_rule(self):
+    def test_every_case_that_is_not_a_match_catches_at_least_one_known_bad_rule(self):
         caught = set().union(*EXPECTED_NAIVE_FAILURES.values())
         for c in load_cases():
-            if c["expect"] == "no_match":
+            if c["expect"] != MATCH:
                 self.assertIn(c["id"], caught, "a trap that no known mistake falls into proves nothing")
 
     def test_a_matcher_cannot_change_the_cases(self):
@@ -95,11 +108,6 @@ class MatcherTest(unittest.TestCase):
     def test_lower_case_input_is_accepted(self):
         record = {"chrom": "1", "pos": 1, "ref": "a", "alt": "c"}
         self.assertTrue(reference_matches(record, {"source": "array", "alleles": ["a", "c"]}))
-
-    def test_documented_limit_letters_on_the_other_strand_are_not_resolved(self):
-        # The README states this limit. If strand handling is ever added, this test and that text change together.
-        record = {"chrom": "1", "pos": 1, "ref": "A", "alt": "G"}
-        self.assertFalse(reference_matches(record, {"source": "array", "alleles": ["T", "C"]}))
 
 
 if __name__ == "__main__":

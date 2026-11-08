@@ -6,10 +6,11 @@
     python examples/pipeline_demo.py out/ reference > reported.tsv
     python -m genotype_checks compare --reported reported.tsv
 
-The second argument picks the matcher: reference, position-only, any-non-reference or
-string-equal. A real pipeline replaces this file: read ``array.txt`` and ``imputed.vcf``, look
-up each variant in ``records.tsv``, and print the records it would report for the subject, in
-the same columns.
+The second argument picks the matcher: ``reference``, or the name of a known-bad rule
+(``genotype-checks selftest`` lists them). The toy pipeline reports a record only when the matcher
+says yes. A real pipeline replaces this file: read ``array.txt`` and ``imputed.vcf``, look up each
+variant in ``records.tsv``, and print the records it would report for the subject, in the same
+columns.
 """
 
 from __future__ import annotations

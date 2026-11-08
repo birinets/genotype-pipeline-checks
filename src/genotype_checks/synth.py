@@ -115,7 +115,7 @@ def compare_reported(reported: set, cases: list[dict[str, Any]] | None = None) -
         r = case["record"]
         key = (str(r["chrom"]), int(r["pos"]), r["ref"].upper(), r["alt"].upper())
         got = case["id"] in reported or key in reported
-        results.append(Result(case["id"], case["expect"] == "match", got, case["why"]))
+        results.append(Result(case["id"], case["expect"], got, case["why"]))
     return results
 
 

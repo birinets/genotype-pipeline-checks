@@ -8,9 +8,12 @@ import copy
 import json
 from dataclasses import dataclass
 from importlib import resources
-from typing import Any, Callable
+from typing import Any, Callable, Union
 
-Matcher = Callable[[dict, dict], bool]
+from .matchers import MATCH
+
+Matcher = Callable[[dict, dict], Any]
+Answer = Union[bool, str]
 
 
 def load_cases() -> list[dict[str, Any]]:
@@ -22,22 +25,43 @@ def load_cases() -> list[dict[str, Any]]:
 
 @dataclass(frozen=True)
 class Result:
+    """One case's result. ``got`` is True/False for a yes/no matcher, or an outcome name."""
+
     case_id: str
-    expect_match: bool
-    got_match: bool
+    expect: str
+    got: Answer
     why: str
 
     @property
+    def expect_match(self) -> bool:
+        return self.expect == MATCH
+
+    @property
     def passed(self) -> bool:
-        return self.expect_match == self.got_match
+        if isinstance(self.got, bool):
+            return self.got == self.expect_match
+        return self.got == self.expect
+
+
+def _as_answer(value: Any) -> Answer:
+    """Read a matcher's answer: an outcome name, an ``(outcome, reason)`` pair, or anything else as yes/no."""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, tuple) and value and isinstance(value[0], str):
+        return value[0]
+    return bool(value)
 
 
 def run_cases(matcher: Matcher, cases: list[dict[str, Any]] | None = None) -> list[Result]:
-    """Call ``matcher(record, genotype)`` once per case. Inputs are copied so a matcher cannot alter them."""
+    """Call ``matcher(record, genotype)`` once per case. Inputs are copied so a matcher cannot alter them.
+
+    A yes/no answer passes when it is yes exactly for the cases whose outcome is ``match``. An
+    outcome name passes only when it is the case's outcome.
+    """
     results = []
     for case in cases if cases is not None else load_cases():
-        got = bool(matcher(copy.deepcopy(case["record"]), copy.deepcopy(case["genotype"])))
-        results.append(Result(case["id"], case["expect"] == "match", got, case["why"]))
+        got = _as_answer(matcher(copy.deepcopy(case["record"]), copy.deepcopy(case["genotype"])))
+        results.append(Result(case["id"], case["expect"], got, case["why"]))
     return results
 
 
@@ -45,15 +69,21 @@ def failed_ids(results: list[Result]) -> set[str]:
     return {r.case_id for r in results if not r.passed}
 
 
+def _describe(got: Answer) -> str:
+    if isinstance(got, bool):
+        return "match" if got else "no match"
+    return got
+
+
 def format_report(results: list[Result]) -> str:
     width = max(len(r.case_id) for r in results)
     lines = []
     for r in results:
         mark = "PASS" if r.passed else "FAIL"
-        want = "match" if r.expect_match else "no match"
-        got = "match" if r.got_match else "no match"
-        detail = "" if r.passed else f"  (expected {want}, got {got})"
+        detail = "" if r.passed else f"  (expected {r.expect}, got {_describe(r.got)})"
         lines.append(f"  [{mark}] {r.case_id.ljust(width)}{detail}".rstrip())
+    if all(isinstance(r.got, bool) for r in results):
+        lines.append("  Yes/no answers: a case expects yes only when its outcome is match.")
     passed = sum(r.passed for r in results)
     lines.append(f"\n{passed}/{len(results)} cases passed.")
     return "\n".join(lines)

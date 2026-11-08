@@ -75,9 +75,9 @@ class SynthTest(unittest.TestCase):
                 reported.add((str(r["chrom"]), int(r["pos"]), r["ref"], r["alt"]))
         self.assertEqual(failed_ids(compare_reported(reported)), set())
 
-    def test_a_pipeline_that_reports_everything_fails_every_no_match_case(self):
+    def test_a_pipeline_that_reports_everything_fails_every_case_that_is_not_a_match(self):
         everything = {c["id"] for c in load_cases()}
-        traps = {c["id"] for c in load_cases() if c["expect"] == "no_match"}
+        traps = {c["id"] for c in load_cases() if c["expect"] != "match"}
         self.assertEqual(failed_ids(compare_reported(everything)), traps)
 
     def test_read_reported_accepts_ids_coordinates_and_records_files(self):

@@ -1,6 +1,6 @@
 {
-  "version": "0.2.0",
-  "about": "Allele-identity cases. Each pairs a database record of a variant with what a subject's data holds at that position, and says whether the data matches the record. 'no_match' means the data does not confirm the record, so a pipeline must not report it; it does not mean the person is free of the variant. Array genotypes are taken as written on the forward strand of the record's genome build. Coordinates, ids and letters are synthetic and do not describe any real variant or person.",
+  "version": "0.3.0.dev0",
+  "about": "Allele-identity cases. Each pairs a database record of a variant with what a subject's data holds at that position, and gives the outcome: 'match', 'match_after_flip' (the letters fit the record only when complemented, A with T and C with G), 'ambiguous_strand' (an A/T or C/G site where the two strands give different answers), 'ref_alt_swapped' (a data row gives the record's reference and alternate the other way round) or 'no_match'. Only 'match' lets a pipeline report the record as it stands, so a yes/no matcher should answer yes for 'match' and no for every other outcome. 'no_match' means the data does not confirm the record; it does not mean the person is free of the variant. Array letters may be on either strand of the record's genome build; a data row's reference and alternate are taken as written when its reference agrees with the record's. Coordinates, ids and letters are synthetic and do not describe any real variant or person.",
   "cases": [
     {
       "id": "delins-vs-array-snp",
@@ -85,6 +85,62 @@
       "record": {"chrom": "1", "pos": 9000, "ref": "CA", "alt": "C"},
       "genotype": {"source": "imputed", "alleles": ["CAA", "CA"], "row_ref": "CAA", "row_alt": "CA"},
       "why": "The same one-base deletion written with a longer anchor (CAA>CA instead of CA>C). Comparing the letters misses it; comparing minimal representations matches it."
+    },
+    {
+      "id": "array-strand-flip",
+      "expect": "match_after_flip",
+      "record": {"chrom": "1", "pos": 9100, "ref": "A", "alt": "G"},
+      "genotype": {"source": "array", "alleles": ["T", "C"]},
+      "why": "T and C are not the record's alleles. Complemented (A with T, C with G) they read A/G: one copy of the record's G. So the letters fit the record only if the data and the record are written on opposite strands. A pipeline may count this only if it corrects strand on purpose, for example from the array manifest, and must not report it as a plain match."
+    },
+    {
+      "id": "imputed-strand-flip",
+      "expect": "match_after_flip",
+      "record": {"chrom": "1", "pos": 9200, "ref": "A", "alt": "G"},
+      "genotype": {"source": "imputed", "alleles": ["C", "C"], "row_ref": "T", "row_alt": "C"},
+      "why": "The data row gives T as the reference base where the record gives A. Complemented, the row T>C reads A>G, the record, and the genotype C/C reads G/G: two copies of G. So the row and the record are written on opposite strands, or one of them is wrong. Count it only with deliberate strand correction, never as a plain match."
+    },
+    {
+      "id": "array-palindromic-homozygous",
+      "expect": "ambiguous_strand",
+      "record": {"chrom": "1", "pos": 9300, "ref": "A", "alt": "T"},
+      "genotype": {"source": "array", "alleles": ["T", "T"]},
+      "why": "A>T reads the same on both strands: complementing A and T gives T and A. So the letters cannot show which strand the data is on, and here the strand decides the answer: T/T is two copies of T on the record's strand and none on the other. Do not report the record from these letters. Strand information from the array manifest could resolve it, and so, when one allele is clearly rarer, could allele frequencies in a reference panel; this kit uses neither."
+    },
+    {
+      "id": "array-palindromic-homozygous-reference",
+      "expect": "ambiguous_strand",
+      "record": {"chrom": "1", "pos": 9400, "ref": "C", "alt": "G"},
+      "genotype": {"source": "array", "alleles": ["C", "C"]},
+      "why": "C>G reads the same on both strands. C/C is no copy of G on the record's strand and two copies on the other. A rule that complements the letters whenever they do not fit as written turns this genotype into a homozygous match. Do not report the record from these letters."
+    },
+    {
+      "id": "array-palindromic-heterozygous",
+      "expect": "match",
+      "record": {"chrom": "1", "pos": 9500, "ref": "G", "alt": "C"},
+      "genotype": {"source": "array", "alleles": ["G", "C"]},
+      "why": "G>C reads the same on both strands, so the letters cannot show which strand the data is on. Here that does not change the answer: a heterozygous G/C holds one copy of C on either strand."
+    },
+    {
+      "id": "imputed-ref-alt-swapped",
+      "expect": "ref_alt_swapped",
+      "record": {"chrom": "1", "pos": 9600, "ref": "A", "alt": "G"},
+      "genotype": {"source": "imputed", "alleles": ["G", "G"], "row_ref": "G", "row_alt": "A"},
+      "why": "The data row gives G as the reference and A as the alternate: the record's alleles the other way round. Two correct descriptions on one genome build cannot disagree about the reference base, so one of them is on another build, lists its alleles in another order (for example effect and other allele), or is wrong. The genotype G/G is two copies of the record's alternate allele, but homozygous reference by the row's own labels. Do not report the record, and check both files."
+    },
+    {
+      "id": "imputed-palindromic-reference-disagrees",
+      "expect": "ambiguous_strand",
+      "record": {"chrom": "1", "pos": 9700, "ref": "A", "alt": "T"},
+      "genotype": {"source": "imputed", "alleles": ["T", "T"], "row_ref": "T", "row_alt": "A"},
+      "why": "The record gives A as the reference base and the data row gives T. Because A>T reads the same on both strands, the row may be written on the other strand, where T/T means A/A and no copy of T, or may list the alleles the other way round, where T/T is two copies of T. The letters cannot tell which, so the record cannot be confirmed."
+    },
+    {
+      "id": "imputed-palindromic-row-agrees",
+      "expect": "match",
+      "record": {"chrom": "1", "pos": 9800, "ref": "C", "alt": "G"},
+      "genotype": {"source": "imputed", "alleles": ["G", "G"], "row_ref": "C", "row_alt": "G"},
+      "why": "C>G reads the same on both strands, but here the data row also gives C as the reference base. The kit takes a data row whose reference agrees with the record as written on the forward strand, as the VCF format requires, so G/G is two copies of G. A row on the other strand with its alleles also swapped would read the same; the kit does not guard against two errors at once."
     }
   ]
 }

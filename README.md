@@ -183,4 +183,4 @@ Issues and pull requests are welcome at the source repository, https://github.co
 
 ## Licence
 
-Code and data files: Apache-2.0, see `LICENSE`. Prose documentation (this README): CC BY 4.0, https://creativecommons.org/licenses/by/4.0/.
+Code and data files: Apache-2.0, see `LICENSE`. Prose documentation (this README and the files in `docs/`): CC BY 4.0, https://creativecommons.org/licenses/by/4.0/.

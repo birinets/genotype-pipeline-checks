@@ -153,6 +153,20 @@ This kit covers a narrow gap: matching array letters or VCF rows to a database r
 
 For strand and reference alleles, `bcftools norm --check-ref` checks REF alleles against a reference genome, and the `bcftools +fixref` plugin can flip or swap REF and ALT to match it; its `flip` mode leaves A/T and C/G sites alone. This kit uses no reference genome, so it can say that a record and the data disagree, but not which of them is right.
 
+Tools that fix strand against a reference already exist, and most do more than this kit: [Genotype Harmonizer](https://github.com/molgenis/systemsgenetics/wiki/Genotype-Harmonizer) and [conform-gt](https://faculty.washington.edu/browning/conform-gt.html) align a dataset to a reference panel and resolve A/T and C/G sites from allele frequency or linkage disequilibrium; Will Rayner's [HRC/1000G check tool](https://www.chg.ox.ac.uk/~wrayner/tools/) compares a PLINK dataset with a panel's sites and writes flip, swap and exclusion lists; [snpflip](https://github.com/biocore-ntnu/snpflip) finds reverse-strand and ambiguous SNPs from a reference FASTA; PLINK's `--flip` and `--ref-from-fa` apply such fixes; the Michigan and TOPMed imputation servers check allele switches and strand flips at upload ([Michigan](https://genepi.github.io/michigan-imputationserver/pipeline/), [TOPMed](https://topmedimpute.readthedocs.io/en/latest/pipeline/)); and [pgsc_calc](https://pgsc-calc.readthedocs.io/) labels every scoring-file match by allele order, strand flip and strand ambiguity before it scores. This kit does none of that fixing. What it adds is a reference-free check of one record against one person's data, and the synthetic cases, which test whether your own matching step draws the same distinctions.
+
+pgsc_calc's matching log ([its output documentation](https://pgsc-calc.readthedocs.io/en/latest/explanation/output.html)) describes how each scoring-file variant matched a target variant, for all samples at once. This kit's outcomes also depend on one person's genotype: a `0/0` row is `no_match` here and a match with a dose of zero there. So the outcomes only roughly correspond to its labels:
+
+| This kit | Roughly corresponds in pgsc_calc's log |
+|---|---|
+| `match` | A `match_type` of `refalt` or `altref`, without `_flip`. |
+| `match_after_flip` | A `match_type` ending in `_flip` (`match_flipped` is true). |
+| `ambiguous_strand` | `ambiguous` is true. |
+| `ref_alt_swapped` | No label of its own. pgsc_calc accepts both allele orders, because a scoring file names an effect allele and an other allele, not a reference and an alternate. A records VCF names the reference, so here the other order is a disagreement. |
+| `no_match`, `no_genotype` | A `match_status` of `unmatched` when no target variant matches. A homozygous reference call or a missing call has no label there, because pgsc_calc matches variants, not genotypes. |
+
+pgsc_calc drops matches to A/T and C/G sites unless its [`--keep_ambiguous`](https://pgsc-calc.readthedocs.io/en/latest/reference/params.html) option is set, and Will Rayner's tool removes A/T and G/C SNPs with a minor allele frequency above 0.4. Both decide per site, for everyone in the data. The TOPMed server's documentation says its allele-switch check ignores A/T and C/G sites. This kit decides per genotype instead.
+
 ## Where the cases come from
 
 The first twelve cases come from a regression test written after a release-blocking bug in the allele-matching step of a commercial product that makes reports from consumer DNA files. A database record for an indel was reported because an array SNP genotype contained one of its letters. The cases were rewritten here as synthetic, engine-independent data, and `alleles.py` is adapted from that product's code, released here by its author. The maintainer, Ruslan Plakhuta, runs that product ([Indaga](https://indaga.ai)). The product's code, data and history are not part of this repository.

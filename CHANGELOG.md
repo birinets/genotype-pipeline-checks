@@ -29,6 +29,7 @@ Strand flips, A/T and C/G sites, swapped reference and alternate, and a VCF chec
 - `string-equal` and `trim-only` now build on the new reference rule, so each still fails exactly its one case. `position-only` and `any-non-reference` are unchanged and also fail some of the new cases.
 - The README's strand statements now say what is tested and what is not. "Not covered" lost strand flips and swaps for single-letter records, A/T and C/G sites, and rows with several alternate alleles (the VCF check reads them), and gained the limits of the new rules.
 - The unit test that pinned "letters on the other strand are not resolved" is replaced by the case `array-strand-flip`.
+- "Related tools" now lists tools that fix strand against a reference panel or genome (Genotype Harmonizer, conform-gt, Will Rayner's check tool, snpflip, PLINK, the imputation servers and pgsc_calc), maps this kit's outcomes roughly onto pgsc_calc's match labels, and says that those tools decide A/T and C/G sites per site while this kit decides per genotype.
 
 ## 0.2.0 (2026-10-11)
 

@@ -147,6 +147,8 @@ The check reads the whole data file, which is slow for large multi-sample files;
 
 `workflows/genotype_checks.wdl` (WDL 1.0) wraps the VCF check for workflow engines such as Cromwell. It takes one or more bgzipped, indexed data files (for example one per chromosome), cuts each down with bcftools to the records' positions and to one sample, joins the pieces, and runs the check. It also asks for the genome build of the records and the data, which must be the same: the kit matches chromosome and position only. The check runs in an image with the kit installed, built from the `Dockerfile` by `.github/workflows/image.yml` for release tags only, so nothing is installed while the workflow runs. Both images are pinned by digest, the kit's own once it has been built.
 
+`.dockstore.yml` describes the workflow for Dockstore and reads release tags only. Its test inputs, `workflows/test.json`, are the synthetic files in `workflows/test-data/` (written by `genotype-checks synth`, then compressed with `bgzip` and indexed with `tabix`), linked as raw GitHub files under the v0.3.0 tag, so the links work only once that tag exists.
+
 All of this is a draft: the workflow has not been run on a workflow engine, the image has not been built, and nothing is registered anywhere.
 
 ## Related tools

@@ -1,0 +1,7 @@
+{
+  "genotype_checks.records_vcf": "https://raw.githubusercontent.com/birinets/genotype-pipeline-checks/v0.3.0/workflows/test-data/records.vcf",
+  "genotype_checks.data_vcfs": ["https://raw.githubusercontent.com/birinets/genotype-pipeline-checks/v0.3.0/workflows/test-data/imputed.vcf.gz"],
+  "genotype_checks.data_vcf_indexes": ["https://raw.githubusercontent.com/birinets/genotype-pipeline-checks/v0.3.0/workflows/test-data/imputed.vcf.gz.tbi"],
+  "genotype_checks.genome_build": "synthetic: the coordinates are made up",
+  "genotype_checks.sample": "SYNTH"
+}

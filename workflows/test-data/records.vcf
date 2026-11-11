@@ -1,0 +1,24 @@
+##fileformat=VCFv4.2
+##source=genotype-pipeline-checks (synthetic records, not real variants)
+##contig=<ID=1>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+1	1000	delins-vs-array-snp	AA	C	.	.	.
+1	1500	deletion-anchor-equals-alt	CA	C	.	.	.
+1	2000	array-alt-mismatch	G	A	.	.	.
+1	3000	imputed-alt-mismatch	C	T	.	.	.
+1	4000	array-genotype-outside-record-alleles	A	G	.	.	.
+1	5000	imputed-indel-different-deletion	CA	C	.	.	.
+1	5500	imputed-row-reference-disagrees	CA	C	.	.	.
+1	5700	imputed-reference-disagrees-in-trimmed-base	CAA	CA	.	.	.
+1	6000	array-snv-exact	A	C	.	.	.
+1	7000	array-snv-homozygous-alt	A	G	.	.	.
+1	8000	imputed-snv-exact	G	A	.	.	.
+1	9000	imputed-indel-different-anchor	CA	C	.	.	.
+1	9100	array-strand-flip	A	G	.	.	.
+1	9200	imputed-strand-flip	A	G	.	.	.
+1	9300	array-palindromic-homozygous	A	T	.	.	.
+1	9400	array-palindromic-homozygous-reference	C	G	.	.	.
+1	9500	array-palindromic-heterozygous	G	C	.	.	.
+1	9600	imputed-ref-alt-swapped	A	G	.	.	.
+1	9700	imputed-palindromic-reference-disagrees	A	T	.	.	.
+1	9800	imputed-palindromic-row-agrees	C	G	.	.	.

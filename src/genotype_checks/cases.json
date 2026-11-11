@@ -1,4 +1,5 @@
 {
+  "schema_version": 2,
   "version": "0.3.0.dev0",
   "about": "Allele-identity cases. Each pairs a database record of a variant with what a subject's data holds at that position, and gives the outcome: 'match', 'match_after_flip' (the letters fit the record only when complemented, A with T and C with G), 'ambiguous_strand' (an A/T or C/G site where the two strands give different answers), 'ref_alt_swapped' (a data row gives the record's reference and alternate the other way round) or 'no_match'. Only 'match' lets a pipeline report the record as it stands, so a yes/no matcher should answer yes for 'match' and no for every other outcome. 'no_match' means the data does not confirm the record; it does not mean the person is free of the variant. Array letters may be on either strand of the record's genome build; a data row's reference and alternate are taken as written when its reference agrees with the record's. Coordinates, ids and letters are synthetic and do not describe any real variant or person.",
   "cases": [

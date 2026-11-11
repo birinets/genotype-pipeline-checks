@@ -134,7 +134,7 @@ The output is a TSV with one row per record: `chrom`, `pos`, `id`, `ref`, `alt`,
 
 The check reads the whole data file, which is slow for large multi-sample files; subset those to the records' positions and one sample first. Try it on the synthetic files with `genotype-checks synth out/` and then `genotype-checks vcf --records out/records.vcf --data out/imputed.vcf`.
 
-**4. Just the cases.** Read `cases.json` and write the tests in your own language. A case's `expect` is one of the five outcomes; if your tests only ask "report or not", treat `match` as yes and everything else as no.
+**4. Just the cases.** Read `cases.json` and write the tests in your own language. A case's `expect` is one of the five outcomes; if your tests only ask "report or not", treat `match` as yes and everything else as no. The file's `schema_version` is 2, the version in which `expect` gained the three outcomes besides `match` and `no_match`. The 0.2.0 file has no `schema_version`; read a missing one as 1. The kit's own loader reads either.
 
 ## A workflow (draft)
 

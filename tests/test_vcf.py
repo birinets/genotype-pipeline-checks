@@ -35,8 +35,8 @@ class SyntheticFilesTest(unittest.TestCase):
         """Records for every case against the imputed rows, through the command line.
 
         Cases with a data row get their own outcome; array cases have no row in the VCF, so
-        no_genotype. The data is read plain and as two concatenated gzip members, which is how
-        BGZF files are built.
+        no_genotype. The data is read plain and as two concatenated gzip members: BGZF is a series
+        of gzip members, though its members also carry a block-size field that these lack.
         """
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)

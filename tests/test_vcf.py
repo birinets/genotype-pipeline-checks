@@ -71,6 +71,8 @@ class DataRowsTest(unittest.TestCase):
         ("900", "split-rows", "A", "T"),
         ("1000", "flipped-and-swapped", "A", "G"),
         ("1100", "row-without-alt", "A", "G"),
+        ("1200", "split-rows-other-order", "A", "T"),
+        ("1300", "rows-disagree", "A", "G"),
     ]
     DATA = [
         ("100", "A", "G,T", "GT", "1/2"),
@@ -80,10 +82,14 @@ class DataRowsTest(unittest.TestCase):
         ("600", "A", "G", "GT", "1"),
         ("700", "A", "G", "GT:DP", "0/1:12"),
         ("800", "A", "G", "GT", "0/1"),
-        ("900", "A", "T", "GT", "0/1"),  # the matching row comes first, so keeping only the last row fails
+        ("900", "A", "T", "GT", "0/1"),  # a split 1/2 call: the record's row first, then the other
         ("900", "A", "G", "GT", "1/0"),
         ("1000", "C", "T", "GT", "0/1"),
         ("1100", "A", ".", "GT", "0/0"),
+        ("1200", "A", "G", "GT", "1/0"),  # the same pair the other way round, so keeping one row fails
+        ("1200", "A", "T", "GT", "0/1"),
+        ("1300", "A", "G", "GT", "0/1"),  # two rows for the record's variant that contradict each other
+        ("1300", "A", "G", "GT", "0/0"),
     ]
     EXPECTED = {  # (id, alt): (outcome, genotype)
         ("multi-allelic-holds-alt", "T"): (MATCH, "G/T"),
@@ -98,6 +104,13 @@ class DataRowsTest(unittest.TestCase):
         ("split-rows", "T"): (MATCH, "A/T"),
         ("flipped-and-swapped", "G"): (REF_ALT_SWAPPED, "C/T"),
         ("row-without-alt", "G"): (NO_MATCH, "A/A"),
+        ("split-rows-other-order", "T"): (MATCH, "A/T"),
+        ("rows-disagree", "G"): (NO_MATCH, "."),
+    }
+    # Where several rows meet one record, the reason must name what the other rows said.
+    REASON_MENTIONS = {
+        ("split-rows", "T"): ["no_match (G/A)"],
+        ("rows-disagree", "G"): ["describe this variant and disagree", "match (A/G)", "no_match (A/A)"],
     }
 
     def test_each_row_shape_gets_its_outcome_and_genotype(self):
@@ -112,6 +125,10 @@ class DataRowsTest(unittest.TestCase):
         self.assertEqual(name, "S1")
         self.assertEqual({(c.id, c.alt): (c.outcome, c.genotype) for c in checked}, self.EXPECTED)
         self.assertEqual(len(checked), len(self.EXPECTED))
+        reasons = {(c.id, c.alt): c.reason for c in checked}
+        for key, mentions in self.REASON_MENTIONS.items():
+            for text in mentions:
+                self.assertIn(text, reasons[key], key)
 
 
 class SampleChoiceTest(unittest.TestCase):

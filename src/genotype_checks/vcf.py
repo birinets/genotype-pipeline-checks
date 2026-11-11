@@ -10,7 +10,11 @@ gzip-compressed, including BGZF, which is a series of gzip members.
 A record is compared with the data rows that start at the same position on the same chromosome (a
 leading ``chr`` is ignored on both sides), using the reference rule in ``matchers``. Multi-allelic data
 rows are read as written: each GT index picks its allele. If several data rows start at one position,
-each is compared and the most confirming outcome is kept.
+each is compared. When two or more of them describe the record's variant (its two alleles, as written
+or complemented) and their outcomes differ, the record is ``no_match``: the kit does not choose between
+rows about one variant, and a row without a usable call counts as disagreeing. Rows that describe
+other variants at the position, such as split multi-allelic rows or an indel beside an SNV, do not
+count against it: the most confirming outcome is kept, and the reason names the others.
 
 Besides the reference rule's five outcomes there is ``no_genotype``: the data has no usable two-allele
 genotype at the record's position (no row, a missing call, a half call or a one-allele call). A missing
@@ -28,7 +32,7 @@ import zlib
 from dataclasses import dataclass
 from typing import IO, Iterator, Optional
 
-from .matchers import NO_MATCH, OUTCOMES, reference_outcome
+from .matchers import NO_MATCH, OUTCOMES, describes_variant, reference_outcome
 
 NO_GENOTYPE = "no_genotype"
 
@@ -196,6 +200,19 @@ def _record_problem(ref: str, alt: str) -> Optional[str]:
     return None
 
 
+def _compare(record: dict, row: _DataRow) -> tuple[str, str, str]:
+    if row.letters is None:
+        return NO_GENOTYPE, ".", row.problem
+    genotype = {"source": "vcf", "alleles": list(row.letters), "row_ref": row.ref, "row_alt": list(row.alts)}
+    found = reference_outcome(record, genotype)
+    return found.outcome, "/".join(row.letters), found.reason
+
+
+def _labelled(result: tuple[str, str, str]) -> str:
+    outcome, letters, _ = result
+    return outcome if letters == "." else f"{outcome} ({letters})"
+
+
 def _check_one(ref: str, alt: str, rows: list) -> tuple[str, str, str]:
     problem = _record_problem(ref, alt)
     if problem:
@@ -203,19 +220,23 @@ def _check_one(ref: str, alt: str, rows: list) -> tuple[str, str, str]:
     if not rows:
         return NO_GENOTYPE, ".", ("The data has no row at this position. A missing row is not a reference "
                                   "call: it says nothing about this record.")
-    results = []
-    for row in rows:
-        if row.letters is None:
-            results.append((NO_GENOTYPE, ".", row.problem))
-            continue
-        genotype = {"source": "vcf", "alleles": list(row.letters), "row_ref": row.ref, "row_alt": list(row.alts)}
-        found = reference_outcome({"ref": ref, "alt": alt}, genotype)
-        results.append((found.outcome, "/".join(row.letters), found.reason))
-    outcome, letters, reason = min(results, key=lambda r: VCF_OUTCOMES.index(r[0]))
-    if len(rows) > 1:
-        reason = (f"{reason} The data has {len(rows)} rows at this position; this one gives the most "
-                  "confirming outcome.")
-    return outcome, letters, reason
+    record = {"ref": ref, "alt": alt}
+    results = [_compare(record, row) for row in rows]
+    if len(results) == 1:
+        return results[0]
+    # Rows about this variant must agree; a row without a usable call disagrees with one that has
+    # it. Rows about other variants at the position (split multi-allelic rows, an SNV and an
+    # indel) say nothing against it, so the most confirming row counts.
+    about = [result for row, result in zip(rows, results) if describes_variant(record, row.ref, row.alts)]
+    if len({outcome for outcome, _, _ in about}) > 1:
+        return NO_MATCH, ".", (f"{len(about)} rows describe this variant and disagree: "
+                               f"{', '.join(_labelled(r) for r in about)}. The kit does not choose between "
+                               "rows about one variant.")
+    i = min(range(len(results)), key=lambda k: VCF_OUTCOMES.index(results[k][0]))
+    (outcome, letters, reason), others = results[i], results[:i] + results[i + 1:]
+    gives = "the other gives" if len(others) == 1 else "the others give"
+    return outcome, letters, (f"{reason} The data has {len(rows)} rows at this position; this one gives the "
+                              f"most confirming outcome, and {gives} {', '.join(_labelled(r) for r in others)}.")
 
 
 def check_vcf(records_path, data_path, sample: Optional[str] = None) -> tuple[str, list[CheckedRecord]]:

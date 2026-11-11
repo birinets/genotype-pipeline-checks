@@ -14,6 +14,7 @@ Strand flips, A/T and C/G sites, swapped reference and alternate, and a VCF chec
 - Eight cases: `array-strand-flip`, `imputed-strand-flip`, `array-palindromic-homozygous`, `array-palindromic-homozygous-reference`, `array-palindromic-heterozygous`, `imputed-ref-alt-swapped`, `imputed-palindromic-reference-disagrees` and `imputed-palindromic-row-agrees`. Unlike the first twelve, they were written for this kit.
 - Known-bad rules `as-written`, `auto-flip` and `allele-set`. Every case whose outcome is not `match` is failed by at least one known-bad rule.
 - `genotype-checks vcf`: checks a records VCF against a data VCF (plain or gzip/BGZF, multi-allelic rows included) and writes one TSV row per record with its outcome and reason. It adds the outcome `no_genotype` for positions without a usable two-allele call.
+- In the VCF check, data rows at one position that describe the record's variant must agree: if their outcomes differ, the record is `no_match` and the reason lists each row. Rows about other variants at that position, such as split multi-allelic rows, do not count against it, and the most confirming outcome is kept.
 - `synth` also writes `records.vcf`.
 - A data row may give `row_alt` as a list, for a row with several alternate alleles. The case file still uses single strings.
 - A draft WDL workflow (`workflows/genotype_checks.wdl`) and `.dockstore.yml`, neither run nor registered, and the design note `docs/v0.3-design.md`.

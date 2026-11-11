@@ -221,6 +221,29 @@ def _row_outcome(ref: str, alt: str, letters: list, row_ref: str, alts: tuple) -
                              "wrong.")
 
 
+def describes_variant(record: Record, row_ref: str, row_alt: Any) -> bool:
+    """True if a data row is about the record's variant rather than another variant at its position.
+
+    Such a row holds the record's two alleles, as written or complemented, in either order. An indel
+    counts only as written, compared by minimal representation, with reference bases that agree.
+    The VCF check uses this to tell rows that disagree about one variant from rows that describe
+    other variants at the same position, such as split multi-allelic rows.
+    """
+    ref = (record.get("ref") or "").upper()
+    alt = (record.get("alt") or "").upper()
+    row_ref, alts = (row_ref or "").upper(), _alts(row_alt)
+    if not ref or not alt or not row_ref:
+        return False
+    if _reference_bases_agree(ref, row_ref) and any(same_allele(row_ref, a, ref, alt) for a in alts):
+        return True
+    if len(ref) != 1 or len(alt) != 1 or len(row_ref) != 1 or not {ref, alt, row_ref} <= set(_COMPLEMENT):
+        return False
+    c = _COMPLEMENT
+    return ((row_ref == alt and ref in alts)             # the record's alleles the other way round
+            or (c[row_ref] == ref and c[alt] in alts)     # complemented
+            or (c[row_ref] == alt and c[ref] in alts))    # complemented and the other way round
+
+
 # ---------------------------------------------------------------------------------------------
 # Known-bad rules. Each answers yes/no. They exist so the cases can be shown to catch them.
 # ---------------------------------------------------------------------------------------------

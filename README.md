@@ -139,13 +139,15 @@ If several data rows start at the record's position, each is compared. When two 
 
 The output is a TSV with one row per record: `chrom`, `pos`, `id`, `ref`, `alt`, `outcome`, `genotype` (the data's alleles as letters) and `reason`. Besides the five outcomes, `no_genotype` means the data has no usable two-allele genotype there: no row, a missing or half call, or a one-allele call. A missing row is not a reference call. A count of outcomes goes to standard error. The output contains genotypes from the data file, so treat it like that file. The command exits with 0 when it ran, whatever the outcomes, and with 2 when it is called wrongly or cannot read its input or write its output.
 
-The check reads the whole data file, which is slow for large multi-sample files; subset those to the records' positions and one sample first. Try it on the synthetic files with `genotype-checks synth out/` and then `genotype-checks vcf --records out/records.vcf --data out/imputed.vcf`.
+The check reads the whole data file, which is slow for large multi-sample files; subset those to the records' positions and one sample first, as the workflow below does with `bcftools view`. Try it on the synthetic files with `genotype-checks synth out/` and then `genotype-checks vcf --records out/records.vcf --data out/imputed.vcf`.
 
 **4. Just the cases.** Read `cases.json` and write the tests in your own language. A case's `expect` is one of the five outcomes; if your tests only ask "report or not", treat `match` as yes and everything else as no. The file's `schema_version` is 2, the version in which `expect` gained the three outcomes besides `match` and `no_match`. The 0.2.0 file has no `schema_version`; read a missing one as 1. The kit's own loader reads either.
 
 ## A workflow (draft)
 
-`workflows/genotype_checks.wdl` (WDL 1.0) wraps the VCF check in one task for workflow engines such as Cromwell, and `.dockstore.yml` describes it for Dockstore. Both are drafts: the workflow has not been run yet and is not registered anywhere.
+`workflows/genotype_checks.wdl` (WDL 1.0) wraps the VCF check for workflow engines such as Cromwell. It takes one or more bgzipped, indexed data files (for example one per chromosome), cuts each down with bcftools to the records' positions and to one sample, joins the pieces, and runs the check. It also asks for the genome build of the records and the data, which must be the same: the kit matches chromosome and position only. The check runs in an image with the kit installed, built from the `Dockerfile` by `.github/workflows/image.yml` for release tags only, so nothing is installed while the workflow runs. Both images are pinned by digest, the kit's own once it has been built.
+
+All of this is a draft: the workflow has not been run on a workflow engine, the image has not been built, and nothing is registered anywhere.
 
 ## Related tools
 

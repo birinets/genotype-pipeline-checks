@@ -1,0 +1,38 @@
+# Builds the image that workflows/genotype_checks.wdl runs the check in, and pushes it to the GitHub
+# container registry, for release tags only: tag v0.3.0 gives
+# ghcr.io/birinets/genotype-pipeline-checks:0.3.0. A new GHCR package is private until its visibility
+# is changed. The workflow's default image is then replaced by the digest this job prints.
+name: image
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that the tag matches the kit's version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          grep -qxF "__version__ = \"$version\"" src/genotype_checks/__init__.py \
+            && grep -qxF "version = \"$version\"" pyproject.toml \
+            || { echo "Tag $GITHUB_REF_NAME does not match the version in __init__.py and pyproject.toml" >&2; exit 1; }
+
+      - name: Build and push
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          image="ghcr.io/birinets/genotype-pipeline-checks:${GITHUB_REF_NAME#v}"
+          echo "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker build --pull --label "org.opencontainers.image.revision=$GITHUB_SHA" --tag "$image" .
+          docker push "$image"
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$image")"
+          echo "Pushed $digest" | tee -a "$GITHUB_STEP_SUMMARY"

@@ -20,7 +20,8 @@ Strand flips, A/T and C/G sites, swapped reference and alternate, and a VCF chec
 - In the VCF check, data rows at one position that describe the record's variant must agree: if their outcomes differ, the record is `no_match` and the reason lists each row. Rows about other variants at that position, such as split multi-allelic rows, do not count against it, and the most confirming outcome is kept.
 - `synth` also writes `records.vcf`.
 - A data row may give `row_alt` as a list, for a row with several alternate alleles. The case file still uses single strings.
-- A draft WDL workflow (`workflows/genotype_checks.wdl`) and `.dockstore.yml`, neither run nor registered, and the design note `docs/v0.3-design.md`.
+- A draft WDL workflow (`workflows/genotype_checks.wdl`) and `.dockstore.yml`, neither run nor registered, and the design note `docs/v0.3-design.md`. The workflow cuts each data file down to the records' positions and one sample with bcftools (an image pinned by digest), joins the pieces, and runs the check in the kit's own image; it asks for the genome build of both files.
+- A `Dockerfile` for that image, and `.github/workflows/image.yml`, which builds it and pushes it to `ghcr.io/birinets/genotype-pipeline-checks` for release tags only. Neither has run yet.
 
 **Changed**
 

@@ -5,10 +5,12 @@
 The records VCF lists the variants a pipeline is about to score: CHROM, POS, ID, REF and ALT are
 read and any sample columns are ignored. Each alternate allele of a row is checked as its own record.
 The data VCF holds one person's genotypes in its GT field. Either file may be plain text or
-gzip-compressed, including BGZF, which is a series of gzip members.
+gzip-compressed, including BGZF, which is a series of gzip members. A BCF file is refused with a hint
+to convert it.
 
 A record is compared with the data rows that start at the same position on the same chromosome (a
-leading ``chr`` is ignored on both sides), using the reference rule in ``matchers``. Multi-allelic data
+leading ``chr`` is ignored on both sides, and M and MT are the same chromosome), using the reference
+rule in ``matchers``. Multi-allelic data
 rows are read as written: each GT index picks its allele. If several data rows start at one position,
 each is compared. When two or more of them describe the record's variant (its two alleles, as written
 or complemented) and their outcomes differ, the record is ``no_match``: the kit does not choose between
@@ -70,10 +72,11 @@ class _DataRow:
 
 def _open_text(path) -> IO[str]:
     with open(path, "rb") as fh:
-        magic = fh.read(2)
-    if magic == b"\x1f\x8b":
-        return gzip.open(path, "rt", encoding="utf-8", newline="")
-    return open(path, "r", encoding="utf-8", newline="")
+        opener = gzip.open if fh.read(2) == b"\x1f\x8b" else open
+    with opener(path, "rb") as fh:  # BCF starts with "BCF", after decompressing if it is compressed
+        if fh.read(3) == b"BCF":
+            raise VcfError(f"{path}: a BCF file must first be converted to VCF, for example with bcftools view")
+    return opener(path, "rt", encoding="utf-8", newline="")
 
 
 def _lines(path) -> Iterator[tuple[int, str]]:
@@ -82,8 +85,7 @@ def _lines(path) -> Iterator[tuple[int, str]]:
             for number, line in enumerate(fh, 1):
                 yield number, line.rstrip("\r\n")
     except UnicodeDecodeError:
-        raise VcfError(f"{path}: not a text VCF (a BCF file must first be converted, "
-                       "for example with bcftools view)") from None
+        raise VcfError(f"{path}: not a text VCF (it is not UTF-8 text)") from None
     except (OSError, EOFError, zlib.error) as exc:
         raise VcfError(f"{path}: cannot be read ({exc})") from None
 
@@ -96,7 +98,9 @@ def _position(text: str, path, number: int) -> int:
 
 
 def _chrom_key(chrom: str) -> str:
-    return chrom[3:] if chrom[:3].lower() == "chr" else chrom
+    """The chromosome name without a leading ``chr``. M and MT are the same chromosome."""
+    key = chrom[3:] if chrom[:3].lower() == "chr" else chrom
+    return "MT" if key.upper() in ("M", "MT") else key
 
 
 def read_records(path) -> list[tuple[str, int, str, str, str]]:
@@ -140,7 +144,7 @@ def _data_row(cols: list, column: int) -> _DataRow:
         return _DataRow(ref, alts, None, "The data row has no GT field.")
     values = cols[column].split(":")
     index = keys.index("GT")
-    gt = values[index] if index < len(values) else "."
+    gt = values[index].strip() if index < len(values) else "."
     calls = _GT_SEPARATOR.split(gt) if gt else ["."]
     if all(c == "." for c in calls):
         return _DataRow(ref, alts, None, f"The genotype is missing ({gt or 'empty'}).")

@@ -125,8 +125,12 @@ def _cmd_vcf(args) -> int:
         print(f"genotype-checks vcf: {exc}", file=sys.stderr)
         return 2
     if args.out:
-        with open(args.out, "w", encoding="utf-8", newline="") as fh:
-            write_tsv(checked, fh)
+        try:
+            with open(args.out, "w", encoding="utf-8", newline="") as fh:
+                write_tsv(checked, fh)
+        except OSError as exc:
+            print(f"genotype-checks vcf: cannot write {args.out} ({exc.strerror or exc})", file=sys.stderr)
+            return 2
     else:
         write_tsv(checked, sys.stdout)
     print(summary(sample, checked), file=sys.stderr)

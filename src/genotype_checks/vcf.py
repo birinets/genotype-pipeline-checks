@@ -2,7 +2,7 @@
 # Copyright 2026 Ruslan Plakhuta
 """Check a records VCF against a data VCF and give one outcome per record.
 
-The records VCF lists the variants a pipeline is about to score: CHROM, POS, ID, REF and ALT are
+The records VCF lists the variants a pipeline may report: CHROM, POS, ID, REF and ALT are
 read and any sample columns are ignored. Each alternate allele of a row is checked as its own record.
 The data VCF holds one person's genotypes in its GT field. Either file may be plain text or
 gzip-compressed, including BGZF, which is a series of gzip members. A BCF file is refused with a hint

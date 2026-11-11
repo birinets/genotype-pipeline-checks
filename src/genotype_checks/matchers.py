@@ -15,9 +15,13 @@ row with more than one alternate allele (read from a VCF) may give ``row_alt`` a
 ``reference_outcome`` returns one of five outcomes, with a one-line reason:
 
     match              the data confirms the record as written
-    match_after_flip   the letters fit the record only when complemented (A with T, C with G)
-    ambiguous_strand   an A/T or C/G site where the two strands give different answers
-    ref_alt_swapped    a data row gives the record's reference and alternate the other way round
+    match_after_flip   the letters fit the record only when complemented (A with T, C with G), and
+                       complemented they hold the record's alternate allele
+    ambiguous_strand   an A/T or C/G site where the letters cannot show the strand and it could
+                       change the answer: a homozygous array call, or a data row that gives the
+                       record's two letters the other way round
+    ref_alt_swapped    a data row gives the record's reference and alternate the other way round,
+                       as written or complemented (at an A/T or C/G site: ambiguous_strand)
     no_match           the data does not confirm the record
 
 Only ``match`` lets a pipeline report the record as it stands. ``no_match`` is not a negative result
@@ -163,12 +167,13 @@ def _array_outcome(ref: str, alt: str, letters: list) -> Outcome:
             return Outcome(NO_MATCH, f"{gt} holds a letter that is not an allele of {rec} on either strand.")
         n = letters.count(alt)
         if n == 1:
-            return Outcome(MATCH, f"{rec} reads the same on both strands, so the letters cannot show the "
-                                  f"data's strand. It does not matter here: heterozygous {gt} holds one "
-                                  f"copy of {alt} on either strand.")
-        return Outcome(AMBIGUOUS_STRAND, f"{rec} reads the same on both strands, and here the strand decides: "
-                                         f"{gt} is {_copies(n, alt)} on the record's strand and "
-                                         f"{_copies(2 - n, alt)} on the other. The letters cannot tell which.")
+            return Outcome(MATCH, f"{ref} and {alt} are each other's complement, so the letters are the same "
+                                  f"pair on both strands and cannot show the data's strand. It does not "
+                                  f"matter here: heterozygous {gt} holds one copy of {alt} on either strand.")
+        return Outcome(AMBIGUOUS_STRAND, f"{ref} and {alt} are each other's complement, so the letters are the "
+                                         f"same pair on both strands, and here the strand decides: {gt} is "
+                                         f"{_copies(n, alt)} on the record's strand and {_copies(2 - n, alt)} "
+                                         "on the other. The letters cannot tell which.")
     if fits_as_written:
         n = letters.count(alt)
         if n:
@@ -212,9 +217,11 @@ def _row_outcome(ref: str, alt: str, letters: list, row_ref: str, alts: tuple) -
         flipped = _COMPLEMENT[row_ref] == ref and _COMPLEMENT[alt] in alts
         if swapped and flipped:  # only possible at an A/T or C/G site
             return Outcome(AMBIGUOUS_STRAND, f"The record gives {ref} as the reference base and the data row "
-                                             f"{row} gives {row_ref}. {rec} reads the same on both strands, so "
-                                             "the row may be written on the other strand or list the alleles "
-                                             "the other way round, and the letters cannot tell which.")
+                                             f"{row} gives {row_ref}. Complemented, {rec} reads "
+                                             f"{_COMPLEMENT[ref]}>{_COMPLEMENT[alt]}, which is also {rec} with "
+                                             "reference and alternate swapped, so the row may be written on the "
+                                             "other strand or list the alleles the other way round, and the "
+                                             "letters cannot tell which.")
         if flipped:
             complemented = [_complement(a) for a in letters]
             if None not in complemented:
@@ -229,9 +236,9 @@ def _row_outcome(ref: str, alt: str, letters: list, row_ref: str, alts: tuple) -
         if swapped:
             return Outcome(REF_ALT_SWAPPED, f"The data row {row} gives the record's alternate {alt} as its "
                                             f"reference and the record's reference {ref} as an alternate. Two "
-                                            "correct descriptions on one genome build cannot disagree about "
-                                            "the reference base: one of them is on another build, lists its "
-                                            "alleles in another order, or is wrong.")
+                                            "descriptions that both give the genome's reference base at a "
+                                            "position cannot disagree about it: one of them is on another "
+                                            "build, lists its alleles in another order, or is wrong.")
         if _COMPLEMENT[row_ref] == alt and _COMPLEMENT[ref] in alts:
             return Outcome(REF_ALT_SWAPPED, f"Complemented, the data row {row} gives the record's alternate "
                                             f"{alt} as its reference and the record's reference {ref} as an "
@@ -357,7 +364,7 @@ def _complement_every_letter(allele: Any) -> str:
 
 
 def naive_auto_flip(record: Record, genotype: Genotype) -> bool:
-    """Known-bad: when the letters do not fit as written, complements every letter and tries again.
+    """Known-bad: whenever the letters as written are not a match, complements every letter and tries again.
 
     It reports a strand flip as a plain match, and at an A/T or C/G site it turns either
     homozygote into a match.

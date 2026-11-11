@@ -164,7 +164,7 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("vcf", help="check a records VCF against a data VCF: one outcome per record")
     p.add_argument("--records", required=True,
-                   help="VCF of the variants a pipeline will score (plain or gzip/BGZF; samples ignored)")
+                   help="VCF of the variants a pipeline may report (plain or gzip/BGZF; samples ignored)")
     p.add_argument("--data", required=True, help="VCF with the person's genotypes in GT (plain or gzip/BGZF)")
     p.add_argument("--sample", help="sample column to read; required when the data VCF has several")
     p.add_argument("--out", help="write the TSV here instead of to standard output")

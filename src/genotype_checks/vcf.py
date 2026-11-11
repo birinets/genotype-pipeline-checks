@@ -2,21 +2,21 @@
 # Copyright 2026 Ruslan Plakhuta
 """Check a records VCF against a data VCF and give one outcome per record.
 
-The records VCF lists the variants a pipeline may report: CHROM, POS, ID, REF and ALT are
-read and any sample columns are ignored. Each alternate allele of a row is checked as its own record.
-The data VCF holds one person's genotypes in its GT field. Either file may be plain text or
-gzip-compressed, including BGZF, which is a series of gzip members. A BCF file is refused with a hint
-to convert it.
+The records VCF lists the variants a pipeline may report: CHROM, POS, ID, REF and ALT are read and
+any sample columns are ignored. Each alternate allele of a row is checked as its own record. The data
+VCF holds one person's genotypes in its GT field. Either file may be plain text or gzip-compressed,
+including BGZF, which is a series of gzip members. A BCF file is refused with a hint to convert it.
 
 A record is compared with the data rows that start at the same position on the same chromosome (a
 leading ``chr`` is ignored on both sides, and M and MT are the same chromosome), using the reference
-rule in ``matchers``. Multi-allelic data
-rows are read as written: each GT index picks its allele. If several data rows start at one position,
-each is compared. When two or more of them describe the record's variant (its two alleles, as written
-or complemented) and their outcomes differ, the record is ``no_match``: the kit does not choose between
-rows about one variant, and a row without a usable call counts as disagreeing. Rows that describe
-other variants at the position, such as split multi-allelic rows or an indel beside an SNV, do not
-count against it: the most confirming outcome is kept, and the reason names the others.
+rule in ``matchers``. Multi-allelic data rows are read as written: each GT index picks its allele.
+
+If several data rows start at one position, each is compared. When two or more of them describe the
+record's variant (its two alleles, as written or complemented) and their outcomes differ, the record
+is ``no_match``: the kit does not choose between rows about one variant, and a row without a usable
+call counts as disagreeing. Rows that describe other variants at the position, such as split
+multi-allelic rows or an indel beside an SNV, do not count against it: the most confirming outcome is
+kept, and the reason names the others.
 
 Besides the reference rule's five outcomes there is ``no_genotype``: the data has no usable two-allele
 genotype at the record's position (no row, a missing call, a half call or a one-allele call). A missing

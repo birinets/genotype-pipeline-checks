@@ -31,6 +31,8 @@ The reference rule is one reasonable reading, not the only one. Its main choices
 * a data row whose reference agrees with the record is taken as written, even at an A/T or C/G site,
   and is compared by minimal representation; a disagreeing reference is never a match;
 * strand flips and swaps are recognised for single-letter records only;
+* a record or a held allele with a letter other than A, C, G and T, such as N, never matches: such
+  letters confirm nothing;
 * malformed input never matches.
 
 If your pipeline disagrees on purpose, the case tells you where.
@@ -104,13 +106,34 @@ def _reference_bases_agree(ref: str, row_ref: str) -> bool:
     return ref[:n] == row_ref[:n]
 
 
+def letters_problem(subject: str, alleles) -> Optional[str]:
+    """Why ``subject`` confirms nothing, if its alleles use anything other than A, C, G and T (such as N)."""
+    odd: list = []
+    for allele in alleles:
+        for char in allele:
+            if char not in _COMPLEMENT and char not in odd:
+                odd.append(char)
+    if not odd:
+        return None
+    kind = "letters" if all(char.isalpha() for char in odd) else "characters"
+    return f"{subject} uses {', '.join(odd)}, and {kind} other than A, C, G and T confirm nothing."
+
+
 def reference_outcome(record: Record, genotype: Genotype) -> Outcome:
     """The reference rule: one of ``OUTCOMES`` and a one-line reason. See the module docstring."""
     ref, alt, letters, row_ref, has_row_alt, alts = _parse(record, genotype)
     if not ref or not alt or ref == alt:
         return Outcome(NO_MATCH, "The record needs a reference allele and a different alternate allele.")
+    problem = letters_problem(f"The record {ref}>{alt}", (ref, alt))
+    if problem:
+        return Outcome(NO_MATCH, problem)
     if len(letters) != 2:
         return Outcome(NO_MATCH, f"The kit compares two-allele genotypes, and this one has {len(letters)}.")
+    # A held allele written in letters must use A, C, G and T only. A spanning deletion (*) or a
+    # symbolic allele is never one of the record's alleles, so it is left to the rules below.
+    problem = letters_problem(f"The genotype {'/'.join(letters)}", (a for a in letters if a.isalpha()))
+    if problem:
+        return Outcome(NO_MATCH, problem)
     if row_ref and has_row_alt:
         return _row_outcome(ref, alt, letters, row_ref, alts)
     if row_ref or has_row_alt:
@@ -130,8 +153,6 @@ def _array_outcome(ref: str, alt: str, letters: list) -> Outcome:
                                  "it is not a single-letter change.")
     if any(len(a) != 1 for a in letters):
         return Outcome(NO_MATCH, f"An array genotype is two single letters, and {gt} is not.")
-    if ref not in _COMPLEMENT or alt not in _COMPLEMENT:
-        return Outcome(NO_MATCH, f"The record {rec} uses a letter other than A, C, G and T.")
     pair = {ref, alt}
     flipped = [_COMPLEMENT.get(a) for a in letters]
     fits_as_written = set(letters) <= pair

@@ -105,6 +105,19 @@ class MatcherTest(unittest.TestCase):
         self.assertFalse(reference_matches(record, {"source": "array", "alleles": []}))
         self.assertFalse(reference_matches(record, {"source": "array", "alleles": ["A"]}))
 
+    def test_letters_other_than_acgt_never_match(self):
+        # N in the record or in a held allele confirms nothing, from array letters or from a data row.
+        inputs = {
+            "array record": ({"ref": "A", "alt": "N"}, {"source": "array", "alleles": ["A", "N"]}),
+            "row record": ({"ref": "A", "alt": "N"},
+                           {"source": "imputed", "alleles": ["A", "N"], "row_ref": "A", "row_alt": "N"}),
+            "held allele": ({"ref": "A", "alt": "G"},
+                            {"source": "imputed", "alleles": ["G", "N"], "row_ref": "A", "row_alt": ["G", "N"]}),
+        }
+        for name, (record, genotype) in inputs.items():
+            with self.subTest(name):
+                self.assertEqual(reference_outcome(record, genotype).outcome, NO_MATCH)
+
     def test_lower_case_input_is_accepted(self):
         record = {"chrom": "1", "pos": 1, "ref": "a", "alt": "c"}
         self.assertTrue(reference_matches(record, {"source": "array", "alleles": ["a", "c"]}))

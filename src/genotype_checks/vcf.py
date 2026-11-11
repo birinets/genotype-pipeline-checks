@@ -32,7 +32,7 @@ import zlib
 from dataclasses import dataclass
 from typing import IO, Iterator, Optional
 
-from .matchers import NO_MATCH, OUTCOMES, describes_variant, reference_outcome
+from .matchers import NO_MATCH, OUTCOMES, describes_variant, letters_problem, reference_outcome
 
 NO_GENOTYPE = "no_genotype"
 
@@ -41,7 +41,6 @@ VCF_OUTCOMES = OUTCOMES + (NO_GENOTYPE,)
 
 TSV_COLUMNS = ("chrom", "pos", "id", "ref", "alt", "outcome", "genotype", "reason")
 
-_LETTERS = re.compile(r"[ACGTN]+")
 _GT_SEPARATOR = re.compile(r"[/|]")
 
 
@@ -195,9 +194,8 @@ def _record_problem(ref: str, alt: str) -> Optional[str]:
         return "The record lists no alternate allele (ALT is .), so there is nothing to confirm."
     if alt.startswith("<") or alt == "*" or "[" in alt or "]" in alt:
         return f"The record's alternate allele {alt} is symbolic or a breakend; the kit compares letters only."
-    if not _LETTERS.fullmatch(ref.upper()) or not _LETTERS.fullmatch(alt.upper()):
-        return f"The record {ref}>{alt} uses characters other than A, C, G, T and N."
-    return None
+    # Checked before the data, so that such a record is no_match even where the data has no row.
+    return letters_problem(f"The record {ref}>{alt}", (ref.upper(), alt.upper()))
 
 
 def _compare(record: dict, row: _DataRow) -> tuple[str, str, str]:

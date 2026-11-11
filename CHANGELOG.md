@@ -7,6 +7,8 @@ Strand flips, A/T and C/G sites, swapped reference and alternate, and a VCF chec
 **Corrected**
 
 - A homozygous call at an A/T or C/G site was matched as written: `T/T` against `A>T` was a match, although on the other strand it is the opposite homozygote. It is now `ambiguous_strand`. The 0.2.0 README listed this as a limit. The old behaviour is kept as the known-bad rule `as-written`. No existing case changes its expectation.
+- A single-letter record with a letter other than A, C, G or T (for example `A>N` against `A/N`) is no longer a match. 0.2.0 matched it as written.
+- The same holds for data rows and the VCF check: a record or a held allele with a letter other than A, C, G or T, such as N, is `no_match`, because such letters confirm nothing. 0.2.0 matched the record `A>N` against a data row `A>N` holding `N`.
 
 **Added**
 

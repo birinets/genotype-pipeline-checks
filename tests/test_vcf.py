@@ -73,6 +73,7 @@ class DataRowsTest(unittest.TestCase):
         ("1100", "row-without-alt", "A", "G"),
         ("1200", "split-rows-other-order", "A", "T"),
         ("1300", "rows-disagree", "A", "G"),
+        ("1400", "record-with-n", "A", "N"),  # no data row: the record itself confirms nothing
     ]
     DATA = [
         ("100", "A", "G,T", "GT", "1/2"),
@@ -106,6 +107,7 @@ class DataRowsTest(unittest.TestCase):
         ("row-without-alt", "G"): (NO_MATCH, "A/A"),
         ("split-rows-other-order", "T"): (MATCH, "A/T"),
         ("rows-disagree", "G"): (NO_MATCH, "."),
+        ("record-with-n", "N"): (NO_MATCH, "."),
     }
     # Where several rows meet one record, the reason must name what the other rows said.
     REASON_MENTIONS = {

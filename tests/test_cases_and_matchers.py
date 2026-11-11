@@ -66,6 +66,13 @@ class MatcherTest(unittest.TestCase):
         self.assertTrue(others)
         self.assertEqual(failed_ids(run_cases(two_names)), others)
 
+    def test_a_yes_no_answer_with_a_reason_is_read_by_its_first_element(self):
+        # (False, reason) must count as no: a non-empty tuple is truthy as a whole.
+        def with_reasons(record, genotype):
+            return reference_matches(record, genotype), "reason"
+
+        self.assertEqual(failed_ids(run_cases(with_reasons)), set())
+
     def test_each_known_bad_rule_fails_exactly_its_cases(self):
         self.assertEqual(set(KNOWN_BAD), set(EXPECTED_NAIVE_FAILURES))
         for name, rule in KNOWN_BAD.items():

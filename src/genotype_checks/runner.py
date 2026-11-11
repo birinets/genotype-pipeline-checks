@@ -10,10 +10,14 @@ from dataclasses import dataclass
 from importlib import resources
 from typing import Any, Callable, Union
 
-from .matchers import MATCH
+from .matchers import MATCH, OUTCOMES
 
 Matcher = Callable[[dict, dict], Any]
 Answer = Union[bool, str]
+
+
+class UnknownOutcome(ValueError):
+    """A matcher answered with a name that is not one of the outcomes."""
 
 
 def load_cases() -> list[dict[str, Any]]:
@@ -44,11 +48,17 @@ class Result:
 
 
 def _as_answer(value: Any) -> Answer:
-    """Read a matcher's answer: an outcome name, an ``(outcome, reason)`` pair, or anything else as yes/no."""
+    """Read a matcher's answer: an outcome name, or anything else as yes/no.
+
+    A tuple, such as an ``(outcome, reason)`` pair, is read by its first element. A name that is not
+    one of ``OUTCOMES`` raises ``UnknownOutcome`` rather than failing every case quietly.
+    """
+    if isinstance(value, tuple) and value:
+        value = value[0]
     if isinstance(value, str):
+        if value not in OUTCOMES:
+            raise UnknownOutcome(f"unknown outcome {value!r}; expected one of {', '.join(OUTCOMES)}")
         return value
-    if isinstance(value, tuple) and value and isinstance(value[0], str):
-        return value[0]
     return bool(value)
 
 
@@ -56,7 +66,7 @@ def run_cases(matcher: Matcher, cases: list[dict[str, Any]] | None = None) -> li
     """Call ``matcher(record, genotype)`` once per case. Inputs are copied so a matcher cannot alter them.
 
     A yes/no answer passes when it is yes exactly for the cases whose outcome is ``match``. An
-    outcome name passes only when it is the case's outcome.
+    outcome name passes only when it is the case's outcome. Any other name raises ``UnknownOutcome``.
     """
     results = []
     for case in cases if cases is not None else load_cases():

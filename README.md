@@ -102,7 +102,7 @@ genotype = {"source": "imputed",                                      # or "arra
 
 An array reports only the letters it observed, so array genotypes have no `row_ref` or `row_alt`.
 
-The function can answer in two ways. **True or False**, where True means "report this record": it passes a case when it says True exactly for the cases whose outcome is `match`, so every other outcome expects False. Or **an outcome name** such as `"match_after_flip"`, or an `(outcome, reason)` pair: it is then scored on the exact outcome. The kit's own rule is available in both forms, `genotype_checks.matchers:reference_matches` and `genotype_checks.matchers:reference_outcome`. The command exits with 1 if any case fails.
+The function can answer in two ways. **True or False**, where True means "report this record": it passes a case when it says True exactly for the cases whose outcome is `match`, so every other outcome expects False. Or **an outcome name** such as `"match_after_flip"`, or an `(outcome, reason)` pair: it is then scored on the exact outcome. A tuple is read by its first element, so `(False, reason)` is a no. The kit's own rule is available in both forms, `genotype_checks.matchers:reference_matches` and `genotype_checks.matchers:reference_outcome`. The command exits with 1 if any case fails, and with 2 if the function answers with a name that is not one of the five outcomes.
 
 **2. A whole pipeline.** Write the cases out as made-up subject files, run your pipeline on them, and score what it reports. The commands assume `pip install .`; without installing, run them from the repository root with `PYTHONPATH=src` in front and `python3 -m genotype_checks` in place of `genotype-checks`:
 

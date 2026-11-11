@@ -149,6 +149,15 @@ class CliTest(unittest.TestCase):
         result = run_cli("check", "--adapter", "nonsense")
         self.assertNotEqual(result.returncode, 0)
 
+    def test_an_answer_that_is_not_an_outcome_stops_the_check_with_exit_code_two(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "odd_answers.py").write_text("def matches(record, genotype):\n    return 'flipped'\n")
+            result = subprocess.run([sys.executable, "-m", "genotype_checks", "check",
+                                     "--adapter", "odd_answers:matches"],
+                                    capture_output=True, text=True, env=ENV, cwd=tmp)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("unknown outcome 'flipped'", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -10,7 +10,7 @@ import sys
 
 from . import __version__
 from .matchers import KNOWN_BAD, reference_matches, reference_outcome
-from .runner import failed_ids, format_report, load_cases, run_cases
+from .runner import UnknownOutcome, failed_ids, format_report, load_cases, run_cases
 from .synth import compare_reported, read_reported, write_all
 from .vcf import VcfError, check_vcf, summary, write_tsv
 
@@ -96,7 +96,12 @@ def _load_adapter(spec: str):
 
 
 def _cmd_check(args) -> int:
-    results = run_cases(_load_adapter(args.adapter))
+    matcher = _load_adapter(args.adapter)
+    try:
+        results = run_cases(matcher)
+    except UnknownOutcome as exc:
+        print(f"genotype-checks check: {exc}", file=sys.stderr)
+        return 2
     print(format_report(results))
     return 1 if failed_ids(results) else 0
 

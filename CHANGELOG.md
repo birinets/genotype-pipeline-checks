@@ -24,7 +24,7 @@ Strand flips, A/T and C/G sites, swapped reference and alternate, and a VCF chec
 **Changed**
 
 - `cases.json`: `expect` can be any of five outcomes. Readers that test `expect == "match"` keep working; readers that assume two values must be updated. Its `about` text no longer says array letters are taken as written on the forward strand.
-- `check --adapter` and `run_cases` accept True or False, scored as before (yes only for `match`), or an outcome name or an `(outcome, reason)` pair, scored on the exact outcome. `runner.Result` now holds the expected outcome and the answer (`expect`, `got`) instead of two booleans.
+- `check --adapter` and `run_cases` accept True or False, scored as before (yes only for `match`), or an outcome name or an `(outcome, reason)` pair, scored on the exact outcome. A tuple is read by its first element, so `(False, reason)` is a no; 0.2.0 counted any non-empty tuple as yes. A name that is not an outcome stops the run: `run_cases` raises `runner.UnknownOutcome` (a `ValueError`), and `check` exits with 2. `runner.Result` now holds the expected outcome and the answer (`expect`, `got`) instead of two booleans.
 - `string-equal` and `trim-only` now build on the new reference rule, so each still fails exactly its one case. `position-only` and `any-non-reference` are unchanged and also fail some of the new cases.
 - The README's strand statements now say what is tested and what is not. "Not covered" lost strand flips and swaps for single-letter records, A/T and C/G sites, and rows with several alternate alleles (the VCF check reads them), and gained the limits of the new rules.
 - The unit test that pinned "letters on the other strand are not resolved" is replaced by the case `array-strand-flip`.

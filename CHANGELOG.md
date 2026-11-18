@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased (0.3.0)
+## 0.3.0 (2026-11-18)
 
-Strand flips, A/T and C/G sites, swapped reference and alternate, and a VCF check. Not released yet; the code says `0.3.0.dev0`.
+Strand flips, A/T and C/G sites, swapped reference and alternate, and a VCF check.
 
 **Corrected**
 
@@ -21,8 +21,8 @@ Strand flips, A/T and C/G sites, swapped reference and alternate, and a VCF chec
 - `synth` also writes `records.vcf`.
 - A data row may give `row_alt` as a list, for a row with several alternate alleles. The case file still uses single strings.
 - A draft WDL workflow (`workflows/genotype_checks.wdl`) and `.dockstore.yml`, neither run nor registered, and the design note `docs/v0.3-design.md`. The workflow cuts each data file down to the records' positions and one sample with bcftools (an image pinned by digest), joins the pieces, and runs the check in the kit's own image; it asks for the genome build of both files.
-- A `Dockerfile` for that image, and `.github/workflows/image.yml`, which builds it and pushes it to `ghcr.io/birinets/genotype-pipeline-checks` for release tags only. Neither has run yet.
-- `.dockstore.yml` reads release tags only (not branches), names the README, and points at a test parameter file, `workflows/test.json`, whose inputs are synthetic files in `workflows/test-data/` made with `synth`. Their links resolve once the v0.3.0 tag exists.
+- A `Dockerfile` for that image, and `.github/workflows/image.yml`, which builds it and pushes it to `ghcr.io/birinets/genotype-pipeline-checks` for release tags, in the source repository only.
+- `.dockstore.yml` reads release tags only (not branches), names the README, and points at a test parameter file, `workflows/test.json`, whose inputs are synthetic files in `workflows/test-data/` made with `synth`. Their links point at the v0.3.0 tag.
 
 **Changed**
 

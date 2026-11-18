@@ -9,7 +9,7 @@ workflows:
     primaryDescriptorPath: /workflows/genotype_checks.wdl
     readMePath: /README.md
     # The test inputs are synthetic files in workflows/test-data/, given as raw GitHub URLs under the
-    # v0.3.0 tag. They resolve only after that tag is pushed.
+    # v0.3.0 tag.
     testParameterFiles:
       - /workflows/test.json
     authors:

@@ -3,8 +3,8 @@ version 1.0
 # genotype-pipeline-checks, VCF mode as a workflow: check the variants a pipeline may report (a records
 # VCF) against one person's VCF before reporting them, and write one outcome per record.
 #
-# DRAFT, not released. It has not been run on a workflow engine yet. Use it with public or synthetic
-# data only. Its default image is built from the v0.3.0 tag, which does not exist yet.
+# DRAFT. It has not been run on a workflow engine yet. Use it with public or synthetic data only.
+# Its default image is built from the v0.3.0 tag by .github/workflows/image.yml.
 
 workflow genotype_checks {
   input {

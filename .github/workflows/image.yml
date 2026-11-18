@@ -15,6 +15,8 @@ permissions:
 
 jobs:
   image:
+    # The source repository only: a copy has no right to push to this registry namespace.
+    if: github.repository == 'birinets/genotype-pipeline-checks'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

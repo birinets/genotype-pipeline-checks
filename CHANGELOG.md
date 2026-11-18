@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The workflow's default image is now the 0.3.0 image, pinned by digest. A release tag names its own version's image by tag, because the image is built from the tag.
+
 ## 0.3.0 (2026-11-18)
 
 Strand flips, A/T and C/G sites, swapped reference and alternate, and a VCF check.

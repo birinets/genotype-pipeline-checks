@@ -4,7 +4,7 @@ version 1.0
 # VCF) against one person's VCF before reporting them, and write one outcome per record.
 #
 # DRAFT. It has not been run on a workflow engine yet. Use it with public or synthetic data only.
-# Its default image is built from the v0.3.0 tag by .github/workflows/image.yml.
+# Its default image is the kit's image for v0.3.0, pinned by digest.
 
 workflow genotype_checks {
   input {
@@ -13,9 +13,9 @@ workflow genotype_checks {
     Array[File] data_vcf_indexes
     String genome_build
     String? sample
-    # Built from this repository by .github/workflows/image.yml when the v0.3.0 tag is pushed. Once it is
-    # built, this tag is replaced by the image's digest (ghcr.io/birinets/genotype-pipeline-checks@sha256:...).
-    String docker_image = "ghcr.io/birinets/genotype-pipeline-checks:0.3.0"
+    # The image built from the v0.3.0 tag by .github/workflows/image.yml (ghcr.io/birinets/genotype-pipeline-checks:0.3.0),
+    # pinned by digest. A release tag names its own version's image; main pins the latest released image.
+    String docker_image = "ghcr.io/birinets/genotype-pipeline-checks@sha256:fb63a4b21e8caa02d0412352d1ffede9907654508d3a68b2fbf02b35ae0359a7"
     # bcftools 1.23.1 from BioContainers (tag 1.23.1--hb2cee57_0), pinned by digest.
     String bcftools_image = "quay.io/biocontainers/bcftools@sha256:8cf74dd0738e0a86fa3f8dc598596e8160e7e4e71380ab6db943a3b53f993869"
   }
